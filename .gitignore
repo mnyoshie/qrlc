@@ -1,0 +1,16 @@
+*.o
+*.out
+*.gz
+*.py
+*.bin
+*.swp
+*.so
+*.a
+
+
+src/qrl.pb-c.c
+include/qrl.pb-c.h
+qrln.*
+trashbin
+core
+

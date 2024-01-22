@@ -1,0 +1,63 @@
+
+Resolved method descriptor:
+rpc GetBlockByNumber ( .qrl.GetBlockByNumberReq ) returns ( .qrl.GetBlockByNumberResp ) {
+  option (.google.api.http) = { get: "/block-by-number" };
+}
+
+Request metadata to send:
+(empty)
+
+Response headers received:
+accept-encoding: identity,gzip
+content-type: application/grpc
+grpc-accept-encoding: identity,deflate,gzip
+
+Estimated response size: 2975 bytes
+
+Response contents:
+{
+  "block": {
+    "header": {
+      "hashHeader": "AfXINqQKIqFMFdP9VYrTK16BGqiEFKPfmNSATQAAAAA=",
+      "blockNumber": "2891168",
+      "timestampSeconds": "1702754530",
+      "hashHeaderPrev": "BDlZulgQJDf0l1js312isrC/LW8haEDckO+4iwMAAAA=",
+      "rewardBlock": "1645698618",
+      "rewardFee": "100000000",
+      "merkleRoot": "4q6OYs8UxAqBjg1E2zoYHHtqOhW4TvAGRtMPswcE/2M=",
+      "miningNonce": 4061659338,
+      "extraNonce": "30972890"
+    },
+    "transactions": [
+      {
+        "masterAddr": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+        "nonce": "2891169",
+        "transactionHash": "HEEM8IyHqxUApkTmwsuyoIDr89d8UALLTrcEVOyAknc=",
+        "coinbase": {
+          "addrTo": "AQYA4nhdMB0EiMhNYPWOWdE0U9Hz8u6/wkHn0e+GTdEqhwNcVq6K",
+          "amount": "1745698618"
+        }
+      },
+      {
+        "masterAddr": "AQUAuGAfsBivY/IrMYVPZJ8yJJ/9fC6IfYBpS0WL0Y7myp+YBsAW",
+        "fee": "100000000",
+        "publicKey": "AQUAK2Vp4AKXSkpeYYAQ4QvTfQcLuJLE+bPasWmesTOHoMpu/9r7GicvUNISHgwBGU8igzETtmec0Z57nUFnBiqaHA==",
+        "signature": "AAACM1NZlwOwCJW1EyEjXOCtzvQRgVezhSfdByXLqFMy3cZhFlGvLqTf0zEyEoKvxFNv+XmSktX4+r0q4w9LXR9CVy22Xb0EIH9yYmrG7nKuJVFwi4pl0So4N+bXcrQdn/wfFPAyf0PZ2oq+IYYy4sXcCIokGKVwPWmLwY4EZrQTZ4KMWadosVKY/c0ixcf050AItmlfWlhLy97tCz+UdauZmQpmv1qc8/dkxtfpbd8osjHCLjfwPEYIc4UAIg4p8+KoyvsbVIQ+a+GiLI3nkbSOjLJ9mmVdeqe1Cp90xJzQSmXTvj1JjXwyfJWsJ16ElZvi2ap5lMcYIR31DvBvxBknXVma1PSAaHzpxUE8n49UPAvcsWi6LGOqY5Kms3xkInCmn6DcxEb+frULvCSQ0iBlkHOc40cQl+Ni31gDMUuScCPlmOG5w0yyqOSzl2WoZ7nBOsKG9Xd/oR/z9IIjFnyNzHE9BLGFX0cjbPyOKy11DJmrwnl5BqtJ99ZSLcFAYHUxUysBJk2XdEW4dF/xOmmFm0jkpkRvjbueVrMnRrkndgeF9UY5d4o3SYYWD+FLNOSSRonohAzFbYaptoexhP1m5zNFpBNoISl+UIiL4DX0XQoWWcg0cDStO4Zj+ArijvYHQqZEzhrssUaTUFXs+qSK1s98aUS45SGEfOteKKiZS4SiHrPAoXkwV4UdXrb73yevPLsWovI4hFynkZ8ye9yujK78TY1aNB2l/AyGqdhYnM+8eVlA/h4+0uUg0r1zC4n0n6+xf4nalpAFI9SGDZ6uWtEJvukp+7o1yVdaIKdlmevYo2J+l/7gNmsIs/VsUfG9nz95tYZInstPyL4901Ncqc72+7k2WtXdoilzvi5f5Wv/MfgpBRStgL9DHuNLVvNX+AajAehcxvmYeO3AldKPrFgbrftKSrotqUqCsPMQ4qd3BVb5COdYimhDqKRCbwfYADRHNHPLVUzndij6rZCxxr0oIHj+aI9x3ZVtvZ/rzGuHc+Y+N5zhHMFGRoPengIwUETvpjfx0H2u8t6E+y2c06Ob0JZr1Z2P3KkpUEDyg3F/eKnVDDQ6a2zSyVf1bx4fY/whVSRoLpsHAlzBfyNalVUdLedh5pU2Pai2oiogpBKY7wHEUICONFmeSL43LuzNG/G7cjkH60gx8mIP9x8pXX5k3R0vqQLVmFP8CFuJe/aCMzu8ork7cITST0n9KdeXKhKygHaJzbRduCVXiQv0nRT52imkzCwknVqfqQKrcw+qFUnPePDdeJuFwV8XgDKuymCCkxmFEFYQcxZHUzTJT2cC+auC3ntZfKoiIE/ynocVjEJ2hSzhKdznD5vT0lMKZ6A3lXbsj2P5Sk1V2EzgBEfzwdGPVAkDFmFb9hu3HavgqZJxEG2qAH/LbvhquBBFWna5FpkX359uj78JztYy4xo37j2HocAFv9qFh9ptwLk6C4nx9QrF51eD6dYwSyLngdrHa/29f7M3/AKZVeJWnVDK+03QVncVqvVWd2w9FJHEX8ElDGvCAXTFByINbN7f9dbSFRqSqOjGzba+T54e90iquBxl5MgMBzCj23rPspjzwMbSkC8k23Ck7YXuCdwtKMgo0TwxfuCFRWCGfD+NCBse1wq5AnLXhQgswefopRA5ID9LREEbavvL71RCZt1u1KAGUadrPIkECunwXLhz5vKTRajJvA8SJAM0noPIK7opkb/kxa4MeoU8sbJiTA6k5jTWVvYIh+ZogrxJk/BKl4o33JWtrPKJ5qiIzi/pibHQgf+eBMh0CdzIE56ScNNX9ojpfWPJwGfK5UBURm0JS8paOQ2/5wGz8jWZ4sfMWp4WCOqfFtFLf/xiPYZFBTByH/NmXTltRzhuRMSJ50IOa4Ko3PwPDrwMZvO2muuUbMH4I85Xhoda9W+VM39smnW8GhvbSvlXNfZTnHC9wp5fzT1AARb1c6UnmXFAiLQxcMwQNtr99sLg1U50Vyscp+6Xz94H/jBCATVi2CQXZEi4hLp664AdH8fsu3z4NIHSZF1HpExdZ5FRqv/5/IWnqN9u0GGS06ZEUJYbXGX3fTZHDSEGoxZFmtHMieZ4K6RYx7ozQ+VsuyrtXZAqVE2qpoWc9yk7je4IWjvZ59pZe2upebmfhFZNR/QXkcX5Mzn75ARMIQ0uP1kIeg3QQro39Cd/2DkIg/tstf8y0Vo5DPPBxiK/Qf2EFxGv+fUVhRipLGnTSlRJQiXR6ihyphXPeHVeDNzlCA6cOULVduWnf/zcLvUaLovBICvPPFtLJzXK6vyw+lUOpHop4+hku0mZIMC/Dfck4KLa123fxdjwKKl19ix1FsPP7bdl+1X7OYFP/bugwhWm7lzY6CeJsWybTHc+LqQeQbLjnEV6vhUPAE/ekaTqu/J+/9PXx8pMW0T3CZyvInaMKS/yW4KM79OjcKzLY3vo3zBGrxqH/wJWHVKXdrMv4c+byUyHKY6bzuEln7wKHUJdL2bkxRzuljVH1/Y/3+cYL3tyuiLCf/QoxRAxEh+asWPpYwwWgrrZczIehjJvS7M6tiiY+9ZuP4AQPf5aMH1lUNrrOXf3pz32Ry4vrCQTYwOTNPyetPEfAqRNKZijdHCIB71C+Nv1e0EVd1Au7LTzQnV6a6NgQeo2DU/roWIlP2gAYcqSkLXJP1H5lmIiGyknnUc3Fe2vULBw7qidxgHmbL7WOSuB7ECqMAAU/DfIl1Xr6kkZ2PxL8M1baK8t/nUVBulabLIDLcGhlFU2uJr8JLIZwCFWur1AbOwyJzG6ecJknaa3/D8bI5i0z8RRR1ANeDgB8GRmzW0TaW5c5c5KsV8Vn3KFr7t2vHleXkmwLOn0q9PJD2rs7e5nRLNxBFjXwH2d6aWd1iGgsDXCYoPcce17Z5fLTjIBKZiui6AMJmMr51o9Z7ukcebnxlNMGtYcbP/9oHyCzwpNX8F4ignIxUitfbezxbkJ87WnonfoHt7xyeabH8LpvE3j+79YDtMCNyM/Xbv9qiFvuWrerMY74BzO7AHhLhqvpU153mAwXldpbYcfxPBre3qZlozDfOeHUAWCam11P6kfC7vc0QBcGBW9gveB/1JdKy6ukD0NMDdFL0mOTfhHum5UxGl5Bum9NlFSq671MpJlTWw9veTt09vrQM3676+c78iyBGC1E7BR2IDZ3QGonDAWU6DbJu22pJpxgYT1vOrisX/u3E9nVU3fxmcQH2apMaOz6kAG9GZX5s7666UNYT/K85YFOCekummtLujgquWZs/vUT/EbLDFrXOaLkhqd1zUNjJpvRCVZmgMx/wx+W8PCVqWTr47Us1fQA0DG9GXOAxbH1w==",
+        "nonce": "564",
+        "transactionHash": "HwciLSDjZgb27IPzZ06f7a+FoDilS2+tZ/XNmpiRHwc=",
+        "transfer": {
+          "addrsTo": [
+            "AAQAopGLCG6hp4Cvii1FChRK7PhJyzDGuGDhtB4wsdmuG7KYq4z1"
+          ],
+          "amounts": [
+            "30162360000000"
+          ]
+        }
+      }
+    ]
+  }
+}
+
+Response trailers received:
+(empty)
+Sent 1 request and received 1 response

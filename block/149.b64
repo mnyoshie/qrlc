@@ -1,0 +1,46 @@
+
+Resolved method descriptor:
+rpc GetBlockByNumber ( .qrl.GetBlockByNumberReq ) returns ( .qrl.GetBlockByNumberResp ) {
+  option (.google.api.http) = { get: "/block-by-number" };
+}
+
+Request metadata to send:
+(empty)
+
+Response headers received:
+accept-encoding: identity,gzip
+content-type: application/grpc
+grpc-accept-encoding: identity,deflate,gzip
+
+Estimated response size: 258 bytes
+
+Response contents:
+{
+  "block": {
+    "header": {
+      "hashHeader": "8SaPDjG1irL5RUc4jsijf6SbLXDUg52bIar6ZUwAAAA=",
+      "blockNumber": "149",
+      "timestampSeconds": "1530019405",
+      "hashHeaderPrev": "ge8DMcsCCEi9b7kc6VbuxDk8Rf2cWTV0gGpbvnoAAAA=",
+      "rewardBlock": "6656185528",
+      "merkleRoot": "EV8O5Y08f9LD8ylJtWYM+gPc7/maF5lC89EANQLFvfY=",
+      "miningNonce": 1520108020,
+      "extraNonce": "38389108992"
+    },
+    "transactions": [
+      {
+        "masterAddr": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+        "nonce": "150",
+        "transactionHash": "EV8O5Y08f9LD8ylJtWYM+gPc7/maF5lC89EANQLFvfY=",
+        "coinbase": {
+          "addrTo": "AQYAlow0CMulGS11wRzskJ6AP8WQ6CRjIWtaBM6ORH92tOAsDT2B",
+          "amount": "6656185528"
+        }
+      }
+    ]
+  }
+}
+
+Response trailers received:
+(empty)
+Sent 1 request and received 1 response
