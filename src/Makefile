@@ -1,41 +1,54 @@
-CC = gcc
-CFLAGS = -O2 -ggdb3
-#CFLAGS += -D_FORTIFY_SOURCE=2
+CC = clang
+
+CFLAGS = -O2 
+CFLAGS += -ggdb3
+CFLAGS += -D_FORTIFY_SOURCE=2
 CFLAGS += -fpie
 #CFLAGS += -fstack-protector
-#CFLAGS += -fsanitize=address
-CFLAGS += -Wformat -Wformat-security
+CFLAGS += -fsanitize=address
+CFLAGS += -Wformat
+CFLAGS += -Wformat-security
+CFLAGS += -Wall
+CFLAGS += -Wextra
 
 LDFLAGS = -lstdc++
 LDFLAGS += -lm
+LDFLAGS += -ljson-c
 LDFLAGS += -lcrypto
-#LDFLAGS += -lprotobuf-c
+LDFLAGS += -lleveldb
 LDFLAGS += -lrandomx
 LDFLAGS += -lxmss_qrl
-LDFLAGS += -lcurl
-#LDFLAGS += -fsanitize=address
+#LDFLAGS += -lcurl
+LDFLAGS += -fsanitize=address
 
 CSOURCES = qrl.c
-CSOURCES += xmssf.c
+CSOURCES += hash.c
+CSOURCES += chain.c
 CSOURCES += utils.c
 CSOURCES += log.c
-CSOURCES += grpc.c
-CSOURCES += protobuf-c.c
+CSOURCES += dev_config.c
+#CSOURCES += grpc.c
+CSOURCES += xmssf.c
 CSOURCES += qrl.pb-c.c
+CSOURCES += protobuf-c.c
 CSOURCES += rx-slow-hash.c
+
+ifeq ($(V),1)
+  Q=
+else
+  Q=@
+endif
 
 COBJECTS = $(patsubst %.c,%.o,$(CSOURCES))
 
-all: a.out
 
-a.out : $(COBJECTS)
+qrl : $(COBJECTS)
 	$(CC) -L../xmss-alt $(LDFLAGS) $^ -o $@
 
-$(COBJECTS) : %.o:%.c
-	$(CC) -c $(CFLAGS) -I.. $< -o $@
-qrl.pb-c.c ../include/qrl.pb-c.h : ../prebuilt/qrl.pb-c.c ../prebuilt/qrl.pb-c.h
-	cp ../prebuilt/qrl.pb-c.c .
-	cp ../prebuilt/qrl.pb-c.h ./include
+$(COBJECTS): %.o : %.c
+	@echo "  CC $<" 
+	$(Q)$(CC) -c $(CFLAGS) -I.. $< -o $@
+
 
 clean:
-	rm $(COBJECTS) a.out
+	rm $(COBJECTS) qrl

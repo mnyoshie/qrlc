@@ -4,8 +4,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "include/log.h"
-#include "include/utils.h"
+#include "hash.h"
+#include "log.h"
+#include "utils.h"
+#include "include/types.h"
+
 #include "xmss-alt/algsxmss_fast.h"
 #include "xmss-alt/xmss_params.h"
 
@@ -18,9 +21,6 @@
 
 #define QRL_XMSS_SEED_SIZE 48
 #define QRL_ADDR_DESC_SIZE 3
-
-extern void qrl_sha256(const uint8_t *message, int message_len,
-                       uint8_t *digest32);
 
 #define STRING_OK "ok"
 
@@ -76,11 +76,11 @@ int qrl_gen_keypair(int addr_desc) {
         return 1;
     }
     /* The 4-bits parameter P1, is the height when SIG=0 (XMSS) */
-    int height = GET_P1(addr_desc) * 2;
+    qu32 height = GET_P1(addr_desc) * 2;
 
-    const uint32_t k = 2;
-    const uint32_t w = 16;
-    const uint32_t n = 32;
+    const qu32 k = 2;
+    const qu32 w = 16;
+    const qu32 n = 32;
 
     if (k >= height || (height - k) % 2) {
       QRL_LOG_EX(QRL_LOG_ERROR, "->1\n");
@@ -105,8 +105,8 @@ int qrl_gen_keypair(int addr_desc) {
       int len = 0;
       QRL_LOG("generating random bytes...");
       while (len != QRL_XMSS_SEED_SIZE) {
-        /* wait for sometime to replenish the ring */
-        sleep(1);
+        /* wait for some time to replenish the ring */
+        //sleep(1);
         len += read(fdr, seed + len, QRL_XMSS_SEED_SIZE - len);
       }
       puts(STRING_OK);
@@ -155,7 +155,7 @@ int qrl_gen_keypair(int addr_desc) {
     uint8_t *th_nodes = calloc(1, (height - k) * n);
     uint8_t *retain = calloc(1, (((1 << k) - k - 1) * n));
 
-    for (int i = 0; i < height - k; i++) {
+    for (qu32 i = 0; i < height - k; i++) {
       treehash[i].node = &th_nodes[n * i];
     }
 
@@ -166,7 +166,7 @@ int qrl_gen_keypair(int addr_desc) {
     xmss_set_bds_state(&state, stack, stackoffset, stacklevels, auth, keep,
                        treehash, retain, 0);
 
-    QRL_LOG("generating key pair. may minutes...");
+    QRL_LOG("generating key pair. may take minutes...");
     if (xmssfast_Genkeypair(addr_hf, &params, pk, sk, &state, seed)) {
       ret = 1;
       goto clean_xmss;
@@ -226,10 +226,12 @@ int qrl_gen_keypair(int addr_desc) {
     /* multi sig */
     QRL_LOG_EX(QRL_LOG_ERROR, "unknowm signature type %d\n",
                GET_SIG(addr_desc));
+    assert(0);
     return 1;
   } else {
     QRL_LOG_EX(QRL_LOG_ERROR, "unknowm signature type %d\n",
                GET_SIG(addr_desc));
+    assert(0);
     return 1;
   }
 
@@ -250,31 +252,30 @@ int qrl_gen_keypair(int addr_desc) {
 |    SIG  |     HF   |   AF   |    P1    |   P2   |
 `------------------------------------------------*/
 /* 23 bit <-------------------------------- 0 bit */
-int qrl_verify_sig(uint8_t *epkey, size_t epkey_len, uint8_t *msg,
-                   size_t msg_len, uint8_t *sig, size_t sig_len) {
-  if (epkey_len != 64 + QRL_ADDR_DESC_SIZE) {
-    QRL_LOG_EX(QRL_LOG_ERROR, "invalid epkey length: %d\n", epkey_len);
+int qrl_verify_sig(qvec_t epkey, qvec_t msg, qvec_t sig) {
+  if (epkey.len != 64 + QRL_ADDR_DESC_SIZE) {
+    QRL_LOG_EX(QRL_LOG_ERROR, "invalid epkey length: %d\n", epkey.len);
     return 1;
   }
-  if (GET_SIGB(epkey[0]) == 0) {
-    assert(msg_len >= 32);
+  if (GET_SIGB(epkey.data[0]) == 0) {
+    assert(msg.len >= 32);
     xmss_params xparams;
     const int k = 2;
     const int w = 16;
     const int n = 32;
-    uint8_t height = GET_P1B(epkey[1]) * 2;
+    uint8_t height = GET_P1B(epkey.data[1]) * 2;
 
     uint8_t output_msg[32] = {0};
-    memcpy(output_msg, msg, msg_len);
+    memcpy(output_msg, msg.data, msg.len);
 
     xmss_set_params(&xparams, n, height, w, k);
 
-    return xmss_Verifysig(GET_HFB(epkey[0]), &(xparams.wots_par), output_msg,
-                          32, sig,
+    return xmss_Verifysig(GET_HFB(epkey.data[0]), &(xparams.wots_par), output_msg,
+                          32, sig.data,
                           /* skip 3 bytes of the epkey */
-                          epkey + QRL_ADDR_DESC_SIZE, height);
+                          epkey.data + QRL_ADDR_DESC_SIZE, height);
   } else {
-    QRL_LOG_EX(QRL_LOG_ERROR, "unsupported sig type: %d\n", GET_SIGB(epkey[0]));
+    QRL_LOG_EX(QRL_LOG_ERROR, "unsupported sig type: %d\n", GET_SIGB(epkey.data[0]));
     return 1;
   }
 

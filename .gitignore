@@ -7,10 +7,10 @@
 *.so
 *.a
 
+rm
 
-src/qrl.pb-c.c
-include/qrl.pb-c.h
 qrln.*
+qrl
 trashbin
 core
 

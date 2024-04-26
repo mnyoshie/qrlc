@@ -45,7 +45,7 @@
  * \todo Use size_t consistently.
  */
 
-#include "include/protobuf-c.h"
+#include "protobuf-c.h"
 
 #include <stdlib.h> /* for malloc, free */
 #include <string.h> /* for strcmp, strlen, memcpy, memmove, memset */

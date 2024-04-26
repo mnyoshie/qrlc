@@ -25,4 +25,4 @@ $(OBJECTS) : %.o:%.c
 
 
 clean:
-	rm $(OBJECTS) libxmss_fast.a
+	rm $(OBJECTS)

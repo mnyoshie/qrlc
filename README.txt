@@ -1,18 +1,20 @@
-# QRL C
+# QRL utilities in C
 
-Tests
+Still in its draft
 
 Based from github.com/theqrl/qrl
 
 Requires:
 
-- lcrypto -lrandomx -lcurl -lpthread
+- lcrypto -lrandomx -lleveldb -lpthread
 
 # License
 
-Parts of this source directory are written by the QRL contributors and
-M. N Yoshie.
+Parts of this source directory are written by the QRL/C contributors and others.
 
-Sources written by them are releases under their own License.
+Sources written by the QRL contributors are released under their License.
 
-Sources written by M. N. Yoshie are released under MIT.
+Sources written by the QRLC contributors are released under MIT License.
+
+See the accompanying notice at every sources for it's author
+and license.
