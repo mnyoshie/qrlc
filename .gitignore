@@ -6,10 +6,11 @@
 *.swp
 *.so
 *.a
+*.tmp
 
+t.c
 rm
-
-qrln.*
+main.c
 qrl
 trashbin
 core

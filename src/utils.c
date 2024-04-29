@@ -64,22 +64,22 @@ void qrl_printx(void *c, size_t len) {
   puts("");
 }
 //
-//#ifdef MAP_NOCORE
-//#  define QRL_MAP_NOCORE MAP_NOCORE
-//#else
-//#  define QRL_MAP_NOCORE 0
-//#endif
+// #ifdef MAP_NOCORE
+// #  define QRL_MAP_NOCORE MAP_NOCORE
+// #else
+// #  define QRL_MAP_NOCORE 0
+// #endif
 //
-//#ifdef MAP_CONCEAL
-//#  define QRL_MAP_CONCEAL MAP_CONCEAL
-//#else
-//#  define QRL_MAP_CONCEAL 0
-//#endif
+// #ifdef MAP_CONCEAL
+// #  define QRL_MAP_CONCEAL MAP_CONCEAL
+// #else
+// #  define QRL_MAP_CONCEAL 0
+// #endif
 //
 ///* special function for allocating sensitive memory for private keys */
 ///* MUST ONLY BE FREED by qrl_free_secure_page()
 // */
-//void *qrl_alloc_secure_page() {
+// void *qrl_alloc_secure_page() {
 //  void *mem = mmap(
 //      NULL, getpagesize(), PROT_WRITE,
 //      MAP_PRIVATE | MAP_ANONYMOUS | QRL_MAP_NOCORE | QRL_MAP_CONCEAL, -1, 0);
@@ -99,7 +99,7 @@ void qrl_printx(void *c, size_t len) {
 //  return mem;
 //}
 //
-//void qrl_free_secure_page(void *mem) {
+// void qrl_free_secure_page(void *mem) {
 //  if (mem == NULL) return;
 //  memset(mem, 0xaa, getpagesize());
 //  memset(mem, 0x55, getpagesize());
@@ -115,7 +115,7 @@ void qrl_printx(void *c, size_t len) {
 //  QRL_LOG_EX(QRL_LOG_TRACE, "freed %d bytes on %p\n", getpagesize(), mem);
 //}
 //
-//void *qrl_malloc(size_t s) {
+// void *qrl_malloc(size_t s) {
 //  void *mem = malloc(s);
 //  if (mem == NULL) {
 //    QRL_LOG_EX(QRL_LOG_WARNING, "couldn't allocated %d bytes\n", s);
@@ -124,7 +124,7 @@ void qrl_printx(void *c, size_t len) {
 //  return mem;
 //}
 //
-//void *qrl_calloc(size_t n, size_t s) {
+// void *qrl_calloc(size_t n, size_t s) {
 //  void *mem = calloc(n, s);
 //  if (mem == NULL) {
 //    QRL_LOG_EX(QRL_LOG_WARNING, "couldn't allocated %d bytes\n", n * s);
@@ -133,7 +133,7 @@ void qrl_printx(void *c, size_t len) {
 //  return mem;
 //}
 //
-//void qrl_free(void *mem) {
+// void qrl_free(void *mem) {
 //  if (mem == NULL) return;
 //  free(mem);
 //}

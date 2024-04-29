@@ -1,4 +1,4 @@
-#include <randomx.h>
+#include "randomx/randomx.h"
 #include <stdio.h>
 #include <unistd.h>
 
@@ -18,18 +18,6 @@
 
 #include <assert.h>
 
-struct inctr_t {
-  size_t i;
-};
-
-static inline size_t pincrement(struct inctr_t *t, size_t s) {
-  return t->i += s;
-}
-static inline size_t incrementp(struct inctr_t *t, size_t s) {
-  size_t i = t->i;
-  t->i += s;
-  return i;
-}
 
 extern int qrl_gen_keypair(int);
 extern int qrl_verify_sig(qvec_t pkey, qvec_t msg, qvec_t sig);
@@ -42,21 +30,19 @@ void qrl_compute_hash_header(const qblock_hdr_t block_header,
   assert(hash_header.data != NULL);
   assert(seed_hash.len == 32);
   struct inctr_t ctr = {0};
+  size_t sincr = 8;
 
   /* PHASE 1 */
   /* unsafe memory magic */
   uint8_t blob1[8 + 8 + 32 + 8 + 8 + 32] = {0};
-  size_t sincr = 8;
 
-  /* QRL stored this field in little endian in the protobuf
-   */
-  memcpy(blob1 + incrementp(&ctr, sincr), &(uint64_t){QBSWAP64(block_header.block_number)}, sincr);
-  memcpy(blob1 + incrementp(&ctr, sincr), &(uint64_t){QBSWAP64(block_header.timestamp)}, sincr);
+  memcpy(blob1 + incrementp(&ctr, sincr), &(uint64_t){QINT2BIG_64(block_header.block_number)}, sincr);
+  memcpy(blob1 + incrementp(&ctr, sincr), &(uint64_t){QINT2BIG_64(block_header.timestamp)}, sincr);
   sincr = 32;
   memcpy(blob1 + incrementp(&ctr, sincr), block_header.pheader_hash.data, sincr);
   sincr = 8;
-  memcpy(blob1 + incrementp(&ctr, sincr), &(uint64_t){QBSWAP64(block_header.block_reward)}, sincr);
-  memcpy(blob1 + incrementp(&ctr, sincr), &(uint64_t){QBSWAP64(block_header.fee_reward)}, sincr);
+  memcpy(blob1 + incrementp(&ctr, sincr), &(uint64_t){QINT2BIG_64(block_header.block_reward)}, sincr);
+  memcpy(blob1 + incrementp(&ctr, sincr), &(uint64_t){QINT2BIG_64(block_header.fee_reward)}, sincr);
   sincr = 32;
   memcpy(blob1 + incrementp(&ctr, sincr), block_header.merkle_root.data, sincr);
 
@@ -71,7 +57,7 @@ void qrl_compute_hash_header(const qblock_hdr_t block_header,
   memcpy(mining_nonce_bytes,
          &(uint32_t){QBSWAP32(block_header.mining_nonce)}, 4);
   memcpy(mining_nonce_bytes + 4,
-         &(uint64_t){QBSWAP64(block_header.extra_nonce)}, 8);
+         &(uint64_t){QINT2BIG_64(block_header.extra_nonce)}, 8);
 
   /* mining nonce offset = 39 */
   /* 76 -18  = 58*/
@@ -115,6 +101,8 @@ void qrl_compute_hash_header(const qblock_hdr_t block_header,
 
 void qrl_compute_transaction_hash(qtx_t transaction,
                                   qvec_t transaction_hash) {
+  struct inctr_t ctr = {0};
+  size_t sincr = 0;
   switch (transaction.tx_type) {
     case QTX_TRANSFER: {
       if (transaction.transfer.n_amounts != transaction.transfer.n_addrs_to) {
@@ -146,24 +134,22 @@ void qrl_compute_transaction_hash(qtx_t transaction,
 
       assert(data_blob != NULL);
 
-      memcpy(data_blob, transaction.master_addr.data,
-             transaction.master_addr.len);
-      memcpy(data_blob + transaction.master_addr.len,
-             &(uint64_t){QBSWAP64(transaction.fee)}, sizeof(uint64_t));
-      memcpy(data_blob + transaction.master_addr.len + sizeof(uint64_t),
-             transaction.transfer.message_data.data,
-             transaction.transfer.message_data.len);
+      sincr = transaction.master_addr.len;
+      memcpy(data_blob + incrementp(&ctr, sincr), transaction.master_addr.data, sincr);
+      sincr = sizeof(uint64_t);
+      memcpy(data_blob + incrementp(&ctr, sincr), &(uint64_t){QINT2BIG_64(transaction.fee)}, sincr);
+      sincr = transaction.transfer.message_data.len;
+      memcpy(data_blob + incrementp(&ctr, sincr), transaction.transfer.message_data.data, sincr);
 
       do {
-        size_t seek = transaction.master_addr.len + sizeof(uint64_t) +
-                      transaction.transfer.message_data.len;
+        size_t seek = ctr.i;
 
         for (qu32 i = 0; i < transaction.transfer.n_addrs_to; i++) {
           memcpy(data_blob + seek, transaction.transfer.addrs_to[i].data,
                  transaction.transfer.addrs_to[i].len);
           seek += transaction.transfer.addrs_to[i].len;
           memcpy(data_blob + seek,
-                 &(uint64_t){QBSWAP64(transaction.transfer.amounts[i])},
+                 &(uint64_t){QINT2BIG_64(transaction.transfer.amounts[i])},
                  sizeof(transaction.transfer.amounts[i]));
           seek += sizeof(transaction.transfer.amounts[i]);
         }
@@ -177,9 +163,9 @@ void qrl_compute_transaction_hash(qtx_t transaction,
       QRL_LOG("data hash: ");
       qrl_printx(data_hash, 32);
       if (qrl_verify_sig(
-              (qvec_t){transaction.public_key.len, transaction.public_key.data}, //
-              (qvec_t){32, data_hash},         //
-              (qvec_t){transaction.signature.len, transaction.signature.data})) {
+              (qvec_t){.len=transaction.public_key.len, .data=transaction.public_key.data}, //
+              (qvec_t){.len=32, .data=data_hash},         //
+              (qvec_t){.len=transaction.signature.len, .data=transaction.signature.data})) {
         QRL_LOG_EX(QRL_LOG_ERROR, "invalid signature\n");
       }
 
@@ -223,10 +209,10 @@ void qrl_compute_transaction_hash(qtx_t transaction,
       memcpy(transaction_blob, transaction.master_addr.data, transaction.master_addr.len);
       memcpy(transaction_blob + transaction.master_addr.len, transaction.coinbase.addr_to.data, transaction.coinbase.addr_to.len);
       memcpy(transaction_blob + transaction.master_addr.len + transaction.coinbase.addr_to.len,
-             &(uint64_t){QBSWAP64(transaction.nonce)},
+             &(uint64_t){QINT2BIG_64(transaction.nonce)},
              sizeof(transaction.nonce));
       memcpy(transaction_blob + transaction.master_addr.len + transaction.coinbase.addr_to.len + sizeof(transaction.nonce),
-             &(uint64_t){QBSWAP64(transaction.coinbase.amount)},
+             &(uint64_t){QINT2BIG_64(transaction.coinbase.amount)},
              sizeof(transaction.coinbase.amount));
       assert(transaction_hash.len >= 32);
       qrl_sha256(transaction_blob, transaction_blob_len, transaction_hash.data);
@@ -328,7 +314,7 @@ int main() {
 
   qchain_t *chain = qrl_open_chain("/storage/6366-6331/Android/data/com.termux/files/qrl/state");
 
-  for (qu64 i = 0; i < 2; i++)
+  for (qu64 i = 0; i < 10; i++)
     qblock_t *qblock1 = qrl_get_block_by_number(chain, i);
   qrl_close_chain(chain);
 

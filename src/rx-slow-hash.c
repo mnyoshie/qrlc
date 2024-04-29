@@ -32,7 +32,7 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 #include <limits.h>
-#include <randomx.h>
+#include "randomx/randomx.h"
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>

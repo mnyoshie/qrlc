@@ -1,9 +1,9 @@
 #ifndef QHASH_H
 #define QHASH_H
 
+#include <assert.h>
 #include <openssl/evp.h>
 #include <openssl/sha.h>
-#include <assert.h>
 
 #include "include/types.h"
 

@@ -27,8 +27,8 @@ void qrl_shake128(qvec_t digest, qvec_t msg) {
 /*------------\
  * SHAKE-256  |
  *-----------*/
-//void qrl_shake256(uint8_t *message, int message_len, uint8_t *digest,
-//                  int digest_len) {
+// void qrl_shake256(uint8_t *message, int message_len, uint8_t *digest,
+//                   int digest_len) {
 void qrl_shake256(qvec_t digest, qvec_t message) {
   EVP_MD_CTX *mdctx = EVP_MD_CTX_new();
   assert(mdctx != NULL);

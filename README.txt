@@ -6,7 +6,7 @@ Based from github.com/theqrl/qrl
 
 Requires:
 
-- lcrypto -lrandomx -lleveldb -lpthread
+- lcrypto -lleveldb -ljson-c -lsnappy -lpthread
 
 # License
 

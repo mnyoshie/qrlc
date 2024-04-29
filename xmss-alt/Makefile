@@ -1,28 +1,37 @@
-CC = gcc
 CFLAGS = -Wall -g -O3 -Wextra -Wpedantic -D_FORTIFY_SOURCE=2 #-fsanitize=address
-LDLIBS = -lcrypto
-#LDLIBS += -fsanitize=address
+LDFLAGS = -lcrypto
+#LDFLAGS += -fsanitize=address
 
-SOURCES = algsxmss.c
-SOURCES += algsxmss_fast.c
-SOURCES += fips202.c
-SOURCES += hash.c 
-SOURCES += hash_address.c
-SOURCES += wots.c
-SOURCES += xmss_common.c
-OBJECTS = $(subst .c,.o,$(SOURCES))
+csources = fips202.c
+csources += hash.c 
+csources += hash_address.c
+csources += wots.c
+csources += xmss_common.c
+objects = $(subst .c,.o,$(csources))
 
-SOURCES_FAST = $(subst boilerplate,algsxmss_fast.c,$(SOURCES))
-OBJECTS_FAST = $(subst .c,.o,$(SOURCES_FAST))
-HEADERS_FAST = $(subst xmss_core.c,xmss_core_fast.c,$(HEADERS))
+ifeq ($(V),1)
+  Q=
+else
+  Q=@
+endif
 
-all: libxmss_qrl.a
+#csources_fast = $(subst boilerplate,algsxmss_fast.c,$(csources))
+#objects_fast = $(subst .c,.o,$(csources_fast))
+#HEADERS_fast = $(subst xmss_core.c,xmss_core_fast.c,$(HEADERS))
 
-libxmss_qrl.a : $(OBJECTS)
+all: libxmss_qrl.a libxmssf_qrl.a
+
+libxmss_qrl.a : $(objects) algsxmss.o
 	$(AR) rcs $@ $^
 
-$(OBJECTS) : %.o:%.c
+libxmssf_qrl.a : $(objects) algsxmss_fast.o
+	$(AR) rcs $@ $^
+
+%.o : %.c
+	@echo "  CC $< $@"
+	$(Q)$(CC) -c $(CFLAGS) $< -o $@
 
 
 clean:
-	rm $(OBJECTS)
+	rm $(objects) libxmss_qrl.a libxmssf_qrl.a
+

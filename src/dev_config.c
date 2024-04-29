@@ -7,7 +7,7 @@ const char *qget_mainnet_address(qu32 i) {
   if (i > 2)
     return NULL;
 
-  const char *mainnet_addrs[] = {
+  const char *const mainnet_addrs[] = {
     QRL_MAINNET1,
     QRL_MAINNET2,
     NULL
