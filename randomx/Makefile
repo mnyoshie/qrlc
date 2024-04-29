@@ -46,7 +46,7 @@ endif
 
 ifeq ($(machine),riscv64)
 cxxsources += jit_compiler_rv64.cpp
-sources += jit_compiler_rv64_static.S
+asms = jit_compiler_rv64_static.S
 endif
 
 objects = $(patsubst %.cpp,%.o,$(cxxsources)) $(patsubst %.c,%.o,$(csources)) $(patsubst %.S,%.o,$(asms))
