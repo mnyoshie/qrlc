@@ -1,6 +1,7 @@
 #ifndef QRL_TYPES_H
 #define QRL_TYPES_H
 
+#include <stdlib.h>
 #include "qint.h"
 
 #define QVEC_NULL (qvec_t){.data=NULL, .len=0}

@@ -310,6 +310,7 @@ int main() {
 
   qchain_t *chain = qrl_open_chain("/storage/6366-6331/Android/data/com.termux/files/qrl/state");
   printf("chain height %" PRIu64"\n", qrl_get_chain_height(chain));
+  assert(chain != NULL);
 
   qu64 seedheight = rx_seedheight(1);
   qblock_t *seed_block = qrl_get_block_by_number(chain, seedheight);

@@ -13,5 +13,7 @@ rm
 main.c
 qrl
 trashbin
+
+#coredump
 core
 

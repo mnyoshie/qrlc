@@ -1,5 +1,5 @@
-CXXFLAGS += -O3
-CFLAGS += -O3
+CXXFLAGS += -O3 -fPIE
+CFLAGS += -O3 -fPIE
 
 cxxsources =  aes_hash.cpp
 cxxsources += allocator.cpp
@@ -24,6 +24,8 @@ csources += argon2_ref.c
 csources += reciprocal.c
 csources += virtual_memory.c
 
+check-cpu-feature = $(shell cat /proc/cpuinfo | grep $(1) > /dev/null; echo $$?)
+
 ifeq ($(V),1)
   Q=
 else
@@ -41,16 +43,22 @@ ifeq ($(machine),x86_64)
   CXXFLAGS += -march=native
   CFLAGS += -march=native
   CFLAGS += -maes
+
+  # HAVE cpuid
+  ifeq ($(call check-cpu-feature,cpuid),0)
+  CXXFLAGS += -DHAVE_CPUID
+  CFLAGS += -DHAVE_CPUID
+  endif
   
   # HAVE SSE3 
-  ifeq ($(shell cat /proc/cpuinfo | grep sse3 > /dev/null; echo $?),0)
+  ifeq ($(call check-cpu-feature,ssse3),0)
   csources += argon2_ssse3.c
-  CXXFLAGS += -msse3
-  CFLAGS += -msse3
+  CXXFLAGS += -mssse3
+  CFLAGS += -mssse3
   endif
   
   # HAVE AVX2
-  ifeq ($(shell cat /proc/cpuinfo | grep avx2 > /dev/null; echo $?),0)
+  ifeq ($(call check-cpu-feature,avx2),0)
   csources += argon2_avx2.c
   CXXFLAGS += -mavx2
   CFLAGS += -mavx2
@@ -65,8 +73,8 @@ ifeq ($(machine),aarch64)
 endif
 
 ifeq ($(machine),riscv64)
-cxxsources += jit_compiler_rv64.cpp
-asms = jit_compiler_rv64_static.S
+  cxxsources += jit_compiler_rv64.cpp
+  asms = jit_compiler_rv64_static.S
 endif
 
 objects = $(patsubst %.cpp,%.o,$(cxxsources)) $(patsubst %.c,%.o,$(csources)) $(patsubst %.S,%.o,$(asms))

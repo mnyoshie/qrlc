@@ -3,11 +3,13 @@
 
 #include <arpa/inet.h>
 #include <assert.h>
+#include <string.h>
 #include <byteswap.h>
 #include <limits.h>
 #include <stdlib.h>
 
 #include "include/config.h"
+#include "include/types.h"
 #include "log.h"
 
 #define QBSWAP64(x) bswap_64(x)

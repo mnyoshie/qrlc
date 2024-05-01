@@ -58,9 +58,9 @@ void qrl_dump_ex(int type, char *data, size_t len) {
 
 void qrl_dump(void *data, size_t len) { qrl_dump_ex(QRL_LOG_INFO, data, len); }
 
-void qrl_printx(void *c, size_t len) {
-  char *x = c;
-  for (size_t i = 0; i < len; i++) printf("%02x", x[i]);
+void qrl_printx(void *data, size_t len) {
+  char *c = data;
+  for (size_t i = 0; i < len; i++) printf("%02x", (qu8)c[i]);
   puts("");
 }
 //

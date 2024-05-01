@@ -32,6 +32,7 @@ LDFLAGS += -lm
 LDFLAGS += -lstdc++
 LDFLAGS += -ljson-c
 LDFLAGS += -lcrypto
+LDFLAGS += -lpthread
 LDFLAGS += -lleveldb
 LDFLAGS += -lrandomx
 LDFLAGS += -lxmssf_qrl
