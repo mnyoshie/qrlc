@@ -19,12 +19,25 @@
 #include "pb2types.h"
 #include "utils.h"
 
+#define DEFINE_COMMON_VARIABLES             \
+  do {                                      \
+    leveldb_readoptions_t *roptions = NULL; \
+    char *value = NULL;                     \
+    size_t valuelen;                        \
+    char *err = NULL;                       \
+  } while (0)
+
+#define FREE_COMMON_VARIABLES              \
+  do {                                     \
+    leveldb_free(err);                     \
+    leveldb_free(value);                   \
+    leveldb_readoptions_destroy(roptions); \
+  } while (0)
+
 qchain_t *qrl_open_chain(char *dir) {
   qchain_t *chain;
   leveldb_t *state;
   leveldb_options_t *options;
-  // leveldb_writeoptions_t *woptions;
-
   char *err = NULL;
 
   options = leveldb_options_create();
@@ -41,6 +54,7 @@ qchain_t *qrl_open_chain(char *dir) {
   assert(chain != NULL);
   chain->state = state;
   strncpy(chain->state_dir, dir, 511);
+
   return chain;
 }
 
@@ -105,7 +119,7 @@ exit:
 }
 
 qblock_t *qrl_get_block_by_number(qchain_t *chain, qu64 block_number) {
-  qblock_t *block = NULL;
+  qblock_t *qblock = NULL;
   leveldb_readoptions_t *roptions = NULL;
   char *value = NULL;
   size_t valuelen;
@@ -130,9 +144,10 @@ qblock_t *qrl_get_block_by_number(qchain_t *chain, qu64 block_number) {
     goto exit;
   }
   // qrl_dump(value, valuelen);
-  write(1, value, valuelen);
+  //write(1, value, valuelen);
   /* deserialize Block */
-  block = pbblock_blockt(&(qvec_t){.data = (void*)value, .len = valuelen});
+  qblock = qblock_unpack(&(qvec_t){.data = (void*)value, .len = valuelen});
+  assert(qblock != NULL);
 
 exit:
   leveldb_free(err);
@@ -140,7 +155,39 @@ exit:
   leveldb_readoptions_destroy(roptions);
   free(headerhash.data);
 
-  return block;
+  return qblock;
 }
 
-void qrl_free_block(qblock_t *block) { free(block); }
+qu64 qrl_get_chain_height(qchain_t *chain) {
+  leveldb_readoptions_t *roptions = NULL;
+  char *value = NULL; size_t valuelen;
+  char *err = NULL;
+  qu64 height = 0;
+
+
+  roptions = leveldb_readoptions_create();
+  value = leveldb_get(chain->state, roptions, "blockheight", 11,
+                      &valuelen, &err);
+
+  if (err != NULL) {
+    QRL_LOG_EX(QRL_LOG_ERROR,
+               "%s: leveldb: %s. failed to get blockheight\n",
+               chain->state_dir, err);
+    goto exit;
+  }
+
+  assert(value != NULL);
+  height = QINT2BIG_64(*(qu64*)value);
+
+exit:
+  leveldb_free(err);
+  leveldb_free(value);
+  leveldb_readoptions_destroy(roptions);
+
+  return height;
+}
+
+int qrl_update_chain_height(qchain_t *chain, qu64 height) {
+ 
+  return 0;
+}

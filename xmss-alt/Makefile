@@ -15,10 +15,6 @@ else
   Q=@
 endif
 
-#csources_fast = $(subst boilerplate,algsxmss_fast.c,$(csources))
-#objects_fast = $(subst .c,.o,$(csources_fast))
-#HEADERS_fast = $(subst xmss_core.c,xmss_core_fast.c,$(HEADERS))
-
 all: libxmss_qrl.a libxmssf_qrl.a
 
 libxmss_qrl.a : $(objects) algsxmss.o
@@ -30,7 +26,6 @@ libxmssf_qrl.a : $(objects) algsxmss_fast.o
 %.o : %.c
 	@echo "  CC $< $@"
 	$(Q)$(CC) -c $(CFLAGS) $< -o $@
-
 
 clean:
 	rm $(objects) libxmss_qrl.a libxmssf_qrl.a

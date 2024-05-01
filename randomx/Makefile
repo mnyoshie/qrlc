@@ -18,11 +18,9 @@ cxxsources += vm_compiled_light.cpp
 cxxsources += vm_interpreted.cpp
 cxxsources += vm_interpreted_light.cpp
 
-csources += argon2_avx2.c
 csources += blake2/blake2b.c
 csources += argon2_core.c
 csources += argon2_ref.c
-csources += argon2_ssse3.c
 csources += reciprocal.c
 csources += virtual_memory.c
 
@@ -32,16 +30,38 @@ else
   Q=@
 endif
 
-machine = $(shell uname -m)
+machine := $(shell uname -m)
+machine := $(shell echo $(machine) | sed -e 's/x86-64/x86_64/' -e 's/amd64/x86_64/' \
+					-e 's/arm64/aarch64/' -e 's/armv8-a/aarch64/' )
+
 ifeq ($(machine),x86_64)
-cxxsources += jit_compiler_x86.cpp
-cxxsources += assembly_generator_x86.cpp
-asms = jit_compiler_x86_static.S
+  cxxsources += jit_compiler_x86.cpp
+  cxxsources += assembly_generator_x86.cpp
+  asms = jit_compiler_x86_static.S
+  CXXFLAGS += -march=native
+  CFLAGS += -march=native
+  CFLAGS += -maes
+  
+  # HAVE SSE3 
+  ifeq ($(shell cat /proc/cpuinfo | grep sse3 > /dev/null; echo $?),0)
+  csources += argon2_ssse3.c
+  CXXFLAGS += -msse3
+  CFLAGS += -msse3
+  endif
+  
+  # HAVE AVX2
+  ifeq ($(shell cat /proc/cpuinfo | grep avx2 > /dev/null; echo $?),0)
+  csources += argon2_avx2.c
+  CXXFLAGS += -mavx2
+  CFLAGS += -mavx2
+  endif
 endif
 
 ifeq ($(machine),aarch64)
-cxxsources += jit_compiler_a64.cpp
-asms = jit_compiler_a64_static.S
+  cxxsources += jit_compiler_a64.cpp
+  asms = jit_compiler_a64_static.S
+  CXXFLAGS += -march=armv8-a+crypto
+  CFLAGS += -march=armv8-a+crypto
 endif
 
 ifeq ($(machine),riscv64)
@@ -68,10 +88,13 @@ librandomx.a : $(objects)
 	@echo "  CC $< $@"
 	$(Q)$(CC) -c $(CFLAGS) $< -o $@
 
-test: librandomx.a
-	make -C tests CXXFLAGS="-L.. -lrandomx -I.." target=tests run && echo 'librandomx: OK!'
+%.bin: tests/%.o librandomx.a
+	$(CXX) $< -L. -lrandomx -o $@
+
+test: tests.bin
+	./$< && echo 'librandomx: OK!'
 
 clean:
-	rm $(objects)
+	rm $(objects) *.bin
 
 .PHONY: test

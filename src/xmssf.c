@@ -3,6 +3,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 #include "hash.h"
 #include "log.h"

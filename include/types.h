@@ -3,6 +3,7 @@
 
 #include "qint.h"
 
+#define QVEC_NULL (qvec_t){.data=NULL, .len=0}
 
 typedef struct qvec_t qvec_t;
 struct qvec_t {
@@ -16,7 +17,7 @@ struct qblock_hdr_t {
   // assumed to be 32
 //  size_t header_hash_len;
 //  qu8 *header_hash;
-  qvec_t header_hash;
+  qvec_t hash_hdr;
   qu64 block_number;
 
   // unix since epoch jan 1, 1970
@@ -24,10 +25,10 @@ struct qblock_hdr_t {
 
 //  size_t pheader_hash_len;
 //  qu8 *pheader_hash;
-  qvec_t pheader_hash;
+  qvec_t hash_phdr;
 
-  qu64 block_reward;
-  qu64 fee_reward;
+  qu64 reward_block;
+  qu64 reward_fee;
 
   qvec_t merkle_root;
 //  size_t merkle_root_len;
@@ -57,6 +58,22 @@ enum qtx_type_t {
 
 typedef enum qtx_type_t qtx_type_t;
 
+typedef struct qtx_transfer_t qtx_transfer_t;
+struct qtx_transfer_t { 
+  qvec_t message_data;
+  qu32 n_amounts; 
+  qu32 *amounts; 
+  qu32 n_addrs_to; 
+  qvec_t *addrs_to; 
+};
+
+typedef struct qtx_coinbase_t qtx_coinbase_t;
+struct qtx_coinbase_t { 
+  qu32 amount; 
+  qvec_t addr_to; 
+};
+
+
 typedef struct qtx_t qtx_t;
 struct qtx_t { 
   qtx_type_t tx_type;
@@ -69,18 +86,8 @@ struct qtx_t {
   qu32 fee;
   qu32 nonce;
   union {
-    struct {
-      qvec_t message_data;
-      qu32 n_amounts; 
-      qu32 *amounts; 
-      qu32 n_addrs_to; 
-      qvec_t *addrs_to; 
-    } transfer;
-    struct {
-      qu32 amount; 
-      qvec_t addr_to; 
-    } coinbase;
-
+    qtx_transfer_t transfer;
+    qtx_coinbase_t coinbase;
   };
 };
 
@@ -93,5 +100,9 @@ struct qblock_t {
 
   //qgenesis_balance_t genesis_balance;
 };
+
+extern qvec_t new_qvec(size_t size);
+extern void free_qblock(qblock_t *qblock);
+extern void print_qblock(qblock_t *qblock);
 
 #endif

@@ -1,11 +1,13 @@
 #include "randomx/randomx.h"
 #include <stdio.h>
+#include <inttypes.h>
 #include <unistd.h>
 
 #include "log.h"
 #include "utils.h"
 #include "hash.h"
 #include "chain.h"
+#include "rx-slow-hash.h"
 
 #include "include/types.h"
 
@@ -18,86 +20,67 @@
 
 #include <assert.h>
 
+static const char *qrl_license = 
+#include "license.c"
+
+const char *qrl_get_license(void) {
+  return qrl_license;
+}
 
 extern int qrl_gen_keypair(int);
 extern int qrl_verify_sig(qvec_t pkey, qvec_t msg, qvec_t sig);
-
+extern qvec_t qrl_compute_hash_hdr(const qblock_hdr_t block_header, hfunc_ctx hfunc);
 
 /* clang-format off */
 /* computes hash header and writes 32 bytes to hash_header */
-void qrl_compute_hash_header(const qblock_hdr_t block_header,
-                             qvec_t hash_header, qvec_t seed_hash) {
-  assert(hash_header.data != NULL);
-  assert(seed_hash.len == 32);
-  struct inctr_t ctr = {0};
-  size_t sincr = 8;
-
-  /* PHASE 1 */
-  /* unsafe memory magic */
-  uint8_t blob1[8 + 8 + 32 + 8 + 8 + 32] = {0};
-
-  memcpy(blob1 + incrementp(&ctr, sincr), &(uint64_t){QINT2BIG_64(block_header.block_number)}, sincr);
-  memcpy(blob1 + incrementp(&ctr, sincr), &(uint64_t){QINT2BIG_64(block_header.timestamp)}, sincr);
-  sincr = 32;
-  memcpy(blob1 + incrementp(&ctr, sincr), block_header.pheader_hash.data, sincr);
-  sincr = 8;
-  memcpy(blob1 + incrementp(&ctr, sincr), &(uint64_t){QINT2BIG_64(block_header.block_reward)}, sincr);
-  memcpy(blob1 + incrementp(&ctr, sincr), &(uint64_t){QINT2BIG_64(block_header.fee_reward)}, sincr);
-  sincr = 32;
-  memcpy(blob1 + incrementp(&ctr, sincr), block_header.merkle_root.data, sincr);
-
-  uint8_t blob1_md[58] = {0};
-  qrl_shake128((qvec_t){58, blob1_md}, (qvec_t){ctr.i, blob1});
-
-  /* PHASE 2 */
-  uint8_t blob2[1 + 58] = {0};
-  memcpy(blob2 + 1, blob1_md, 58);
-
-  uint8_t mining_nonce_bytes[17] = {0};
-  memcpy(mining_nonce_bytes,
-         &(uint32_t){QBSWAP32(block_header.mining_nonce)}, 4);
-  memcpy(mining_nonce_bytes + 4,
-         &(uint64_t){QINT2BIG_64(block_header.extra_nonce)}, 8);
-
-  /* mining nonce offset = 39 */
-  /* 76 -18  = 58*/
-  const int mining_nonce_offset = QRL_BLOCK_MINING_NONCE_OFFSET;
-
-  /* JUST...... WHY? */
-  /* mining_blob_final = mining_blob_final[:nonce_offset] + mining_nonce_bytes +
-   * mining_blob_final[nonce_offset:] */
-  uint8_t mining_blob_final[76] = {0};
-  memcpy(mining_blob_final, blob2, mining_nonce_offset);
-  memcpy(mining_blob_final + mining_nonce_offset, mining_nonce_bytes, 17);
-  memcpy(mining_blob_final + mining_nonce_offset + 17,
-         blob2 + mining_nonce_offset, 59 - mining_nonce_offset);
-
-  if (block_header.block_number > QRL_HARD_FORK_HEIGHT0) {
-//    unsigned char seed_hash[] = {
-//        0xd0, 0xd1, 0xc4, 0xc6, 0x77, 0xf0, 0x5f, 0xe4, 0x29, 0x72, 0x7a,
-//        0x49, 0xfa, 0x6e, 0xd0, 0x8c, 0xff, 0x03, 0x4c, 0xdd, 0x47, 0x5d,
-//        0x7d, 0xbf, 0xe9, 0x79, 0x27, 0x14, 0x0a, 0x00, 0x00, 0x00};
-
-    randomx_flags flags = randomx_get_flags();
-    randomx_cache *myCache = randomx_alloc_cache(flags);
-    randomx_init_cache(myCache, seed_hash.data, seed_hash.len);
-    randomx_vm *myMachine = randomx_create_vm(flags, myCache, NULL);
-
-    char hash[RANDOMX_HASH_SIZE] = {0};
-
-    randomx_calculate_hash(myMachine, mining_blob_final, 76, hash);
-
-    /* maybe in a future where randomx was updated */
-    if (hash_header.len > RANDOMX_HASH_SIZE)
-      memcpy(hash_header.data, hash, RANDOMX_HASH_SIZE);
-    else
-      memcpy(hash_header.data, hash, hash_header.len);
-
-    randomx_destroy_vm(myMachine);
-    randomx_release_cache(myCache);
-  } else
-    assert(0);
-}
+//void qrl_compute_hash_header(const qblock_hdr_t block_header,
+//                             qvec_t hash_header, struct hash_func *hash_func) {
+//  assert(hash_header.data != NULL);
+//  //assert(seed_hash.len == 32);
+//  struct inctr_t ctr = {0};
+//  size_t sincr = 8;
+//
+//  /* PHASE 1 */
+//  /* unsafe memory magic */
+//  uint8_t blob1[8 + 8 + 32 + 8 + 8 + 32] = {0};
+//
+//  memcpy(blob1 + incrementp(&ctr, sincr), &(uint64_t){QINT2BIG_64(block_header.block_number)}, sincr);
+//  memcpy(blob1 + incrementp(&ctr, sincr), &(uint64_t){QINT2BIG_64(block_header.timestamp)}, sincr);
+//  sincr = 32;
+//  memcpy(blob1 + incrementp(&ctr, sincr), block_header.hash_phdr.data, sincr);
+//  sincr = 8;
+//  memcpy(blob1 + incrementp(&ctr, sincr), &(uint64_t){QINT2BIG_64(block_header.reward_block)}, sincr);
+//  memcpy(blob1 + incrementp(&ctr, sincr), &(uint64_t){QINT2BIG_64(block_header.reward_fee)}, sincr);
+//  sincr = 32;
+//  memcpy(blob1 + incrementp(&ctr, sincr), block_header.merkle_root.data, sincr);
+//
+//  uint8_t blob1_md[58] = {0};
+//  qrl_shake128((qvec_t){.len=58, .data=blob1_md}, (qvec_t){.len=ctr.i, .data=blob1});
+//
+//  /* PHASE 2 */
+//  uint8_t blob2[1 + 58] = {0};
+//  memcpy(blob2 + 1, blob1_md, 58);
+//
+//  uint8_t mining_nonce_bytes[17] = {0};
+//  memcpy(mining_nonce_bytes, &(uint32_t){QINT2BIG_32(block_header.mining_nonce)}, 4);
+//  memcpy(mining_nonce_bytes + 4, &(uint64_t){QINT2BIG_64(block_header.extra_nonce)}, 8);
+//
+//  /* mining nonce offset = 39 */
+//  /* 76 -18  = 58*/
+//  const int mining_nonce_offset = QRL_BLOCK_MINING_NONCE_OFFSET;
+//
+//  /* JUST...... WHY? */
+//  /* mining_blob_final = mining_blob_final[:nonce_offset] + mining_nonce_bytes +
+//   * mining_blob_final[nonce_offset:] */
+//  uint8_t mining_blob_final[76] = {0};
+//  memcpy(mining_blob_final, blob2, mining_nonce_offset);
+//  memcpy(mining_blob_final + mining_nonce_offset, mining_nonce_bytes, 17);
+//  memcpy(mining_blob_final + mining_nonce_offset + 17,
+//         blob2 + mining_nonce_offset, 59 - mining_nonce_offset);
+//
+//  /* XXX: hfunc changes depending on the seed height */
+//  hash_func->hfunc(hash_func, (qvec_t){.data=mining_blob_final, .len=76});
+//}
 
 void qrl_compute_transaction_hash(qtx_t transaction,
                                   qvec_t transaction_hash) {
@@ -171,14 +154,23 @@ void qrl_compute_transaction_hash(qtx_t transaction,
 
       /* transaction blob: data_hash + sig + epkey */
       size_t transaction_blob_len =
-          32 + transaction.signature.len + transaction.public_key.len;
+          32 +
+          transaction.signature.len +
+          transaction.public_key.len;
       uint8_t *transaction_blob = malloc(transaction_blob_len);
       assert(transaction_blob != NULL);
-      memcpy(transaction_blob, data_hash, 32);
-      memcpy(transaction_blob + 32, transaction.signature.data, transaction.signature.len);
-      memcpy(transaction_blob + 32 + transaction.signature.len, transaction.public_key.data, transaction.public_key.len);
+
+      sincr = 32;
+      memcpy(transaction_blob + incrementp(&ctr, sincr), data_hash, sincr);
+
+      sincr = transaction.signature.len;
+      memcpy(transaction_blob + incrementp(&ctr, sincr), transaction.signature.data, sincr);
+
+      sincr = transaction.public_key.len;
+      memcpy(transaction_blob + incrementp(&ctr, sincr), transaction.public_key.data, sincr);
 
       assert(transaction_hash.len >= 32);
+
       qrl_sha256(transaction_blob, transaction_blob_len, transaction_hash.data);
       QRL_LOG("computed transaction hash\n");
       qrl_dump(transaction_hash.data, transaction_hash.len);
@@ -201,19 +193,28 @@ void qrl_compute_transaction_hash(qtx_t transaction,
       break;
     }
     case QTX_COINBASE: {
+  struct inctr_t ctr = {0};
       size_t transaction_blob_len =
-          transaction.master_addr.len + transaction.coinbase.addr_to.len +
-          sizeof(transaction.nonce) + sizeof(transaction.coinbase.amount);
+          transaction.master_addr.len +
+          transaction.coinbase.addr_to.len +
+          sizeof(transaction.nonce) +
+          sizeof(transaction.coinbase.amount);
+
       char *transaction_blob = malloc(transaction_blob_len);
       assert(transaction_blob != NULL);
-      memcpy(transaction_blob, transaction.master_addr.data, transaction.master_addr.len);
-      memcpy(transaction_blob + transaction.master_addr.len, transaction.coinbase.addr_to.data, transaction.coinbase.addr_to.len);
-      memcpy(transaction_blob + transaction.master_addr.len + transaction.coinbase.addr_to.len,
-             &(uint64_t){QINT2BIG_64(transaction.nonce)},
-             sizeof(transaction.nonce));
-      memcpy(transaction_blob + transaction.master_addr.len + transaction.coinbase.addr_to.len + sizeof(transaction.nonce),
-             &(uint64_t){QINT2BIG_64(transaction.coinbase.amount)},
-             sizeof(transaction.coinbase.amount));
+
+      sincr = transaction.master_addr.len;
+      memcpy(transaction_blob + incrementp(&ctr, sincr), transaction.master_addr.data, sincr);
+
+      sincr = transaction.coinbase.addr_to.len;
+      memcpy(transaction_blob + incrementp(&ctr, sincr), transaction.coinbase.addr_to.data, sincr);
+
+      sincr = sizeof(transaction.nonce);
+      memcpy(transaction_blob + incrementp(&ctr, sincr), &(uint64_t){QINT2BIG_64(transaction.nonce)}, sincr);
+
+      sincr = sizeof(transaction.coinbase.amount);
+      memcpy(transaction_blob + incrementp(&ctr, sincr), &(uint64_t){QINT2BIG_64(transaction.coinbase.amount)}, sincr);
+
       assert(transaction_hash.len >= 32);
       qrl_sha256(transaction_blob, transaction_blob_len, transaction_hash.data);
       QRL_LOG("transaction_hash coinbase: \n");
@@ -306,40 +307,65 @@ int qrl_validate_address(uint8_t *addr, size_t len) {
 volatile int current_height = 0;
 int main() {
   qrl_log_level = ~0 & ~QRL_LOG_TRACE;
-    unsigned char seed_hash[] = {
-        0xd0, 0xd1, 0xc4, 0xc6, 0x77, 0xf0, 0x5f, 0xe4, 0x29, 0x72, 0x7a,
-        0x49, 0xfa, 0x6e, 0xd0, 0x8c, 0xff, 0x03, 0x4c, 0xdd, 0x47, 0x5d,
-        0x7d, 0xbf, 0xe9, 0x79, 0x27, 0x14, 0x0a, 0x00, 0x00, 0x00};
-
 
   qchain_t *chain = qrl_open_chain("/storage/6366-6331/Android/data/com.termux/files/qrl/state");
+  printf("chain height %" PRIu64"\n", qrl_get_chain_height(chain));
 
-  for (qu64 i = 0; i < 10; i++)
-    qblock_t *qblock1 = qrl_get_block_by_number(chain, i);
+  qu64 seedheight = rx_seedheight(1);
+  qblock_t *seed_block = qrl_get_block_by_number(chain, seedheight);
+
+  randomx_flags flags = randomx_get_flags();
+  randomx_cache *cache = randomx_alloc_cache(flags);
+  randomx_init_cache(cache, seed_block->block_hdr.hash_hdr.data, seed_block->block_hdr.hash_hdr.len);
+  randomx_vm *machine = randomx_create_vm(flags, cache, NULL);
+
+  hfunc_ctx hash_func;
+  hash_func.digest_len = 32;
+  hash_func.randomx.machine = machine;
+  hash_func.randomx.cache = cache;
+  hash_func.hfunc = hfunc_randomx;
+  free_qblock(seed_block);
+
+  for (qu64 i = 2048; i < 6600; i++) {
+    qblock_t *qblock = qrl_get_block_by_number(chain, i);
+
+    qu8 hashheader[59] = {0};
+
+    if (rx_seedheight(i) != seedheight) {
+      printf("seed height change from %d to %d at height %d\n", seedheight, rx_seedheight(i), i);
+      randomx_destroy_vm(machine);
+      randomx_release_cache(cache);
+
+      cache = randomx_alloc_cache(flags);
+      seedheight = rx_seedheight(i);
+      seed_block = qrl_get_block_by_number(chain, seedheight);
+
+      randomx_init_cache(cache, seed_block->block_hdr.hash_hdr.data, seed_block->block_hdr.hash_hdr.len);
+
+      machine = randomx_create_vm(flags, cache, NULL);
+      hash_func.randomx.machine = machine;
+      hash_func.randomx.cache = cache;
+
+      free_qblock(seed_block);
+    }
+    qvec_t hash_hdr = qrl_compute_hash_hdr(qblock->block_hdr, hash_func);
+    if (memcmp(hash_hdr.data, qblock->block_hdr.hash_hdr.data, 32)) {
+      assert(0);
+    }
+    free(hash_hdr.data);
+    print_qblock(qblock);
+    //printf("h: %lu\n", i);
+//    printf("real: \n");
+//    qrl_dump(hashheader, 32);
+//    printf("computed: \n");
+//    qrl_dump(qblock1->block_hdr.header_hash.data, 32);
+    free_qblock(qblock);
+  }
+
+  randomx_destroy_vm(machine);
+  randomx_release_cache(cache);
   qrl_close_chain(chain);
 
-/*
-  Qrl__GetBlockByNumberReq req = QRL__GET_BLOCK_BY_NUMBER_REQ__INIT;
-  req.block_number = 0;// 2884686;
-  Qrl__GetBlockByNumberResp *resp = qrl_get_block_by_number(req);
-  assert(resp != NULL);
-  QRL_LOG("block_number %" PRIu64 "\n", resp->block->header->block_number);*/
 
-  //  uint8_t hash_header[32];
-  //  qrl_compute_hash_header(*(resp->block->header), hash_header, 32);
-  //  QRL_LOG("block_number %" PRIu64 "\n", resp->block->header->block_number);
-  //  QRL_LOG("received hash header: \n");
-  //  qrl_dump((void *)resp->block->header->hash_header.data, 32);
-  //
-  //  QRL_LOG("computed hash header: \n");
-  //  qrl_dump((void *)hash_header, 32);
-  /*
-    uint8_t transaction_hash[32] = {0};
-    qrl_compute_transaction_hash(*(resp->block->transactions)[2],
-    transaction_hash, 32); qrl__get_block_by_number_resp__free_unpacked(resp,
-    NULL);*/
-
-
-  //qrl_gen_keypair(0x020500);
   return 0;
 }

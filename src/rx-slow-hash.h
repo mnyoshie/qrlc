@@ -30,16 +30,22 @@
 #define QRANDOMX_RX_SLOW_HASH_H
 
 #include <stdint.h>
-#include <cstdlib>
 
-#pragma once
+#if defined(__cplusplus)
+#include <cstdlib>
+extern "C" {
+#else
+#include <stdlib.h>
+#endif
 
 #define RX_BLOCK_VERSION	12
-
-extern "C" {
 uint64_t rx_seedheight(const uint64_t height);
 void rx_slow_hash(const uint64_t mainheight, const uint64_t seedheight, const char *seedhash, const void *data, size_t length,
                   char *hash, int miners, int is_alt);
 void rx_slow_hash_free_state(void);
+
+#if defined(__cplusplus)
 }
+#endif
+
 #endif //QRANDOMX_RX_SLOW_HASH_H

@@ -1,6 +1,8 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#include "log.h"
+#include "utils.h"
 #include "include/types.h"
 
 /* free qvec */
@@ -31,4 +33,54 @@ qvec_t new_qvec(size_t size){
   assert(q != NULL);
 
   return (qvec_t){.data=q, .len=size};
+}
+
+void *qrl_memcat(void *data1, size_t len1, void *data2, size_t len2) {
+  char *ret = malloc(len1 + len2);
+  assert(ret != NULL);
+
+  memcpy(ret, data1, len1);
+  memcpy(ret + len1, data2, len2);
+
+  free(data1);
+  free(data2);
+  return ret;
+}
+
+void print_qblock(qblock_t *qblock) {
+#define PRINT_QBLOCK_FIELD(x) printf(#x ": "); qrl_printx(qblock-> x .data, qblock-> x .len)
+  PRINT_QBLOCK_FIELD(block_hdr.hash_hdr);
+  PRINT_QBLOCK_FIELD(block_hdr.hash_phdr);
+  PRINT_QBLOCK_FIELD(block_hdr.merkle_root);
+#undef PRINT_QBLOCK_FIELD
+}
+
+void free_qblock(qblock_t *qblock) {
+  free(qblock->block_hdr.hash_hdr.data);
+  free(qblock->block_hdr.hash_phdr.data);
+  free(qblock->block_hdr.merkle_root.data);
+  /**************TRANSACTIONS***************************/
+  for (size_t i = 0; i < qblock->nb_txs; i++) {
+    free(qblock->txs[i].master_addr.data);
+    free(qblock->txs[i].public_key.data);
+    free(qblock->txs[i].signature.data);
+    free(qblock->txs[i].transaction_hash.data);
+    switch (qblock->txs[i].tx_type) {
+      case QTX_TRANSFER:
+        for (size_t t = 0; t < qblock->txs[i].transfer.n_addrs_to; t++)
+          free(qblock->txs[i].transfer.addrs_to[t].data);
+
+        free(qblock->txs[i].transfer.message_data.data);
+        assert(qblock->txs[i].transfer.n_addrs_to == qblock->txs[i].transfer.n_amounts);
+        break;
+
+      case QTX_COINBASE:
+        free(qblock->txs[i].coinbase.addr_to.data);
+        break;
+      default: QRL_LOG_EX(QRL_LOG_ERROR, "unknown transaction type %d\n",qblock->txs[i].tx_type);  assert(0);
+    }
+  }
+  free(qblock->txs);
+
+  free(qblock);
 }

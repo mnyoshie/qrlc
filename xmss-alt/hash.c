@@ -4,6 +4,7 @@
 This code was taken from the XMSS reference implementation by Andreas Hülsing and Joost Rijneveld and is public domain.
 */
 
+#include <stdio.h>
 #include "hash_address.h"
 #include "xmss_common.h"
 #include "hash.h"

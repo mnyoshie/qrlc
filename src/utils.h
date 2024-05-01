@@ -49,59 +49,59 @@
 #endif
 
 #ifndef QRL_BUILTIN_ADDU64
-static int qrl_builtin_addu64(uint64_t a, uint64_t b, uint64_t *res) {
-  if (a > (~(uint64_t)0) - b) {
-    *res = ~((uint64_t)0);
-    return 1;
-  }
-  *res = a + b;
-  return 0;
-}
-
-/* I know what you're thinking. unsigned types wrap around when overflowed
- * so why the need?
- */
-static int qrl_builtin_addsizet(size_t a, size_t b, size_t *res) {
-  if (a > (~(size_t)0) - b) {
-    *res = ~((size_t)0);
-    return 1;
-  }
-  *res = a + b;
-  return 0;
-}
-
-static int qrl_builtin_subu64(uint64_t a, uint64_t b, uint64_t *res) {
-  if (a < b) {
-    *res = 0;
-    return 1;
-  }
-  *res = a - b;
-  return 0;
-}
+//static int qrl_builtin_addu64(uint64_t a, uint64_t b, uint64_t *res) {
+//  if (a > (~(uint64_t)0) - b) {
+//    *res = ~((uint64_t)0);
+//    return 1;
+//  }
+//  *res = a + b;
+//  return 0;
+//}
+//
+///* I know what you're thinking. unsigned types wrap around when overflowed
+// * so why the need?
+// */
+//static int qrl_builtin_addsizet(size_t a, size_t b, size_t *res) {
+//  if (a > (~(size_t)0) - b) {
+//    *res = ~((size_t)0);
+//    return 1;
+//  }
+//  *res = a + b;
+//  return 0;
+//}
+//
+//static int qrl_builtin_subu64(uint64_t a, uint64_t b, uint64_t *res) {
+//  if (a < b) {
+//    *res = 0;
+//    return 1;
+//  }
+//  *res = a - b;
+//  return 0;
+//}
 
 #  define QRL_BUILTIN_ADDU64(a, b, res) qrl_builtin_addu64(a, b, res)
 #  define QRL_BUILTIN_ADDSIZET(a, b, res) qrl_builtin_addsizet(a, b, res)
 #  define QRL_BUILTIN_SUBU64(a, b, res) qrl_builtin_subu64(a, b, res)
 #endif /* __has_builtin */
 
-static int qrl_addsizet(size_t *res, int count, ...) {
-  va_list ap;
-  va_start(ap, count);
-
-  size_t sum = 0;
-  for (int i = 0; i < count; i++) {
-    size_t v = va_arg(ap, size_t);
-    if (QRL_BUILTIN_ADDSIZET(sum, v, &sum)) {
-      va_end(ap);
-      /* overflowed */
-      return 1;
-    }
-  }
-
-  va_end(ap);
-  *res = sum;
-  return 0;
-}
+//static int qrl_addsizet(size_t *res, int count, ...) {
+//  va_list ap;
+//  va_start(ap, count);
+//
+//  size_t sum = 0;
+//  for (int i = 0; i < count; i++) {
+//    size_t v = va_arg(ap, size_t);
+//    if (QRL_BUILTIN_ADDSIZET(sum, v, &sum)) {
+//      va_end(ap);
+//      /* overflowed */
+//      return 1;
+//    }
+//  }
+//
+//  va_end(ap);
+//  *res = sum;
+//  return 0;
+//}
 
 struct inctr_t {
   size_t i;
@@ -120,6 +120,6 @@ static inline size_t incrementp(struct inctr_t *t, size_t s) {
 extern void qrl_dump_ex(int type, char *data, size_t len);
 extern void qrl_dump(void *data, size_t len);
 extern void qrl_printx(void *data, size_t len);
-extern void *qrl_alloc_secure_page(void);
+//extern void *qrl_alloc_secure_page(void);
 
 #endif /* QUTILS_H */
