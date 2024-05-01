@@ -53,10 +53,10 @@ csources += qrl.pb-c.c
 csources += protobuf-c.c
 csources += rx-slow-hash.c
 
-csources += core/block.c
-csources += core/tx.c
-csources += core/transfer_tx.c
-csources += core/coinbase_tx.c
+csources += qcore/block.c
+csources += qcore/tx.c
+csources += qcore/transfer_tx.c
+csources += qcore/coinbase_tx.c
 
 ifeq ($(V),1)
   Q=
