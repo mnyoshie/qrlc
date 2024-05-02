@@ -4,35 +4,32 @@
 # Written by the QRLC Authors. Inspired from the Linux 
 # kernel Makefile
 
-#randomx version 1.2.1
+#cryptonight v2: https://github.com/monero-project/monero/commit/5fd83c13fbf8dc304909345e60a853c15b0de1e5#diff-7000dc02c792439471da62856f839d62
 
-CXXFLAGS += -O3 -fPIE
-CFLAGS += -O3 -fPIE
 
-cxxsources =  aes_hash.cpp
-cxxsources += allocator.cpp
-cxxsources += blake2_generator.cpp
-cxxsources += bytecode_machine.cpp
-cxxsources += cpu.cpp
-cxxsources += dataset.cpp
-cxxsources += instruction.cpp
-cxxsources += instructions_portable.cpp
-cxxsources += randomx.cpp
-cxxsources += soft_aes.cpp
-cxxsources += superscalar.cpp
-cxxsources += virtual_machine.cpp
-cxxsources += vm_compiled.cpp
-cxxsources += vm_compiled_light.cpp
-cxxsources += vm_interpreted.cpp
-cxxsources += vm_interpreted_light.cpp
+CFLAGS += -O0 -fPIE -I./include
+CXXFLAGS += -O0 -fPIE -I./include 
 
-csources += blake2/blake2b.c
-csources += argon2_core.c
-csources += argon2_ref.c
-csources += argon2_avx2.c
-csources += argon2_ssse3.c
-csources += reciprocal.c
-csources += virtual_memory.c
+csources += $(directory)aesb.c
+csources += $(directory)blake256.c
+csources += $(directory)chacha.c
+#csources += $(directory)crypto-ops-data.c
+#csources += $(directory)crypto-ops.c
+csources += $(directory)groestl.c
+csources += $(directory)hash-extra-blake.c
+csources += $(directory)hash-extra-groestl.c
+csources += $(directory)hash-extra-jh.c
+csources += $(directory)hash-extra-skein.c
+csources += $(directory)hash.c
+csources += $(directory)jh.c
+csources += $(directory)keccak.c
+csources += $(directory)oaes_lib.c
+csources += $(directory)random.c
+csources += $(directory)skein.c
+csources += $(directory)slow-hash.c
+csources += $(directory)tree-hash.c
+
+testall = extra-blake extra-groestl extra-jh extra-skein fast slow-1 slow-2 slow tree
 
 feature-check = $(shell $(CXX) $(CXXFLAGS) tests/$(1).cpp -o $(1)_test.bin $(tonull) && echo 1 || echo 0)
 check-cpu-feature = $(shell cat /proc/cpuinfo | grep $(1) > /dev/null && echo 1 || echo 0)
@@ -62,9 +59,7 @@ ifeq ($(call feature-check,hwcap),1)
 endif
 
 ifeq ($(machine),x86_64)
-  cxxsources += jit_compiler_x86.cpp
-  cxxsources += assembly_generator_x86.cpp
-  asms = jit_compiler_x86_static.S
+  cxxsources += $(directory)CryptoNight_x86_vaes.cpp
   CXXFLAGS += -march=native
   CFLAGS += -march=native
   CFLAGS += -maes
@@ -77,38 +72,40 @@ ifeq ($(machine),x86_64)
   
   # HAVE SSSE3 
   ifeq ($(call check-compiler-feature,__SSSE3__,-mssse3),1)
+  csources += argon2_ssse3.c
   CXXFLAGS += -mssse3
   CFLAGS += -mssse3
   endif
   
   # HAVE AVX2
   ifeq ($(call check-compiler-feature,__AVX2__,-mavx2),1)
+  csources += argon2_avx2.c
   CXXFLAGS += -mavx2
   CFLAGS += -mavx2
   endif
 endif
 
 ifeq ($(machine),aarch64)
-  cxxsources += jit_compiler_a64.cpp
-  asms = jit_compiler_a64_static.S
   CXXFLAGS += -march=armv8-a+crypto
   CFLAGS += -march=armv8-a+crypto
 endif
+
+CXXFLAGS += $(EXTRACXXFLAGS)
+CFLAGS += $(EXTRACFLAGS)
 
 ifeq ($(machine),riscv64)
   cxxsources += jit_compiler_rv64.cpp
   asms = jit_compiler_rv64_static.S
 endif
 
-
 #####################################
 #####################################
 
 objects = $(patsubst %.cpp,%.o,$(cxxsources)) $(patsubst %.c,%.o,$(csources)) $(patsubst %.S,%.o,$(asms))
 
-target : librandomx.a
+target : libcryptonight.a
 
-librandomx.a : $(objects)
+libcryptonight.a : $(objects)
 	$(AR) rcs $@ $^
 
 %.o : %.cpp
@@ -123,13 +120,27 @@ librandomx.a : $(objects)
 	@echo "  CC $< $@"
 	$(Q)$(CC) -c $(CFLAGS) $< -o $@
 
-%.bin: tests/%.o librandomx.a
-	$(CXX) $< -L. -lrandomx -o $@
+%.bin: tests/%.o libcryptonight.a
+	$(CXX) $< -L. -lcryptonight -o $@
 
-test: tests.bin
-	@./$< && echo 'librandomx: OK!'
+test: main.bin
+	@bash -c ' \
+	result=0;\
+	for test in $(testall); do \
+		./main.bin $$test tests/tests-$$test.txt $(tonull) && \
+			printf "[\e[1;92mPASSED\e[0m]: " || { \
+					printf "[\e[1;91mFAILED\e[0m]: ";result=1; \
+				}; \
+		echo $$test; \
+	done; \
+	if [ "$$result" -ne 0 ]; then \
+		echo "TESTS FAILED!!!"; exit 1; \
+	fi'
+	@echo 'libcryptonight: OK!'
+
+
 
 clean:
-	rm $(objects) librandomx.a *.bin || true
+	rm $(objects) libcryptonight.a *.bin || true
 
 .PHONY: test

@@ -1,3 +1,11 @@
+# Makefile - Makefile for most linux based systems
+# to get rid of cmake builds.
+
+# Written by the QRLC Authors. Inspired from the Linux 
+# kernel Makefile
+
+#qrlc version draft
+
 #CC = clang
 #LD = ld.lld
 
@@ -9,7 +17,7 @@ CFLAGS += -fpie
 CFLAGS += -I.
 CFLAGS += -I..
 CFLAGS += -fstack-protector
-#CFLAGS += -fsanitize=address
+CFLAGS += -fsanitize=address
 CFLAGS += -Wformat
 CFLAGS += -Wformat-security
 CFLAGS += -Wall
@@ -18,6 +26,7 @@ CFLAGS += -Wextra
 LDFLAGS = -L$(PREFIX)/lib
 LDFLAGS += -L../xmss-alt 
 LDFLAGS += -L../randomx
+LDFLAGS += -L../cryptonight
 
 # For Termux
 ifeq ($(shell uname -o),Android)
@@ -34,9 +43,10 @@ LDFLAGS += -ljson-c
 LDFLAGS += -lcrypto
 LDFLAGS += -lpthread
 LDFLAGS += -lleveldb
-LDFLAGS += -lrandomx
 LDFLAGS += -lxmssf_qrl
-#LDFLAGS += -fsanitize=address
+LDFLAGS += -lrandomx
+LDFLAGS += -lcryptonight
+LDFLAGS += -fsanitize=address
 
 csources = log.c
 csources += hash.c
@@ -46,7 +56,7 @@ csources += types.c
 csources += base64.c
 csources += pb2types.c
 csources += dev_config.c
-#csources += grpc.c
+
 csources += cdecode.c
 csources += cencode.c
 csources += xmssf.c
@@ -94,13 +104,17 @@ libqrlc.a : $(objects)
 	@echo "  CC $<" 
 	$(Q)$(CC) -c $(CFLAGS) $< -o $@
 
-$(main) : $(objects) $(main).o
-	$(CC) $^ $(LDFLAGS) -o $@
+
+main : main.o libqrlc.a
+	$(CC) $< $(LDFLAGS) -L. -lqrlc -o $@
+
+$(main) : $(main).o libqrlc.a
+	$(CC) $< $(LDFLAGS) -L. -lqrlc -o $@
 
 ifeq ($(main),)
 clean:
-	rm $(objects) libqrlc.a
+	rm $(objects) libqrlc.a || true
 else
 clean:
-	rm $(objects) libqrlc.a $(main) $(main).o
+	rm $(objects) libqrlc.a $(main) $(main).o || true
 endif

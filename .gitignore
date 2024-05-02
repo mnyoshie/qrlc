@@ -11,9 +11,11 @@
 t.c
 rm
 main.c
+main
 qrl
 trashbin
+del
 
-#coredump
+# we don't want coredumps
+# hanging around
 core
-

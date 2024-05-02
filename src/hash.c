@@ -1,5 +1,8 @@
 #include "hash.h"
 
+extern
+void cn_slow_hash(const void *data, size_t length, char *hash, int variant, int prehashed);
+
 /*------------\
  * SHAKE-128  |
  *-----------*/
@@ -106,12 +109,9 @@ qvec_t hfunc_randomx(hfunc_ctx ctx, qvec_t msg) {
 }
 
 qvec_t hfunc_cryptonight7(hfunc_ctx *ctx, qvec_t msg) {
-//  qu8 *digest = malloc(ctx->digest_len);
-//  assert(digest != NULL);
-//
-//  char buf[RANDOMX_HASH_SIZE] = {0};
-//  randomx_calculate_hash(machine, msg.data, msg.len, buf);
-//
-//  memcpy(digest, buf, ctx->randomx.digest_len);
-  return (qvec_t){.data=NULL, .len=0};
+  qu8 *digest = malloc(ctx->digest_len);
+  assert(digest != NULL);
+  cn_slow_hash(msg.data, msg.len, (void*)digest, 7, 0);
+
+  return (qvec_t){.data=digest, .len=ctx->digest_len};
 }

@@ -7,7 +7,6 @@
 #include "utils.h"
 #include "hash.h"
 #include "chain.h"
-#include "rx-slow-hash.h"
 
 #include "include/types.h"
 
@@ -116,14 +115,14 @@ qvec_t qrl_compute_tx_transfer_hash(qtx_t tx) {
   //               tx.transaction_hash.len);
   //      assert(tx.transaction_hash.len == 32);
 
-  if (memcmp(transaction_hash.data, tx.transaction_hash.data, 32)) {
-    QRL_LOG_EX(QRL_LOG_ERROR, "invalid transaction hash");
-    return QVEC_NULL;
-  }
-
-  QRL_LOG("transaction pubkey %d bytes\n", tx.public_key.len);
-  qrl_dump(tx.public_key.data, tx.public_key.len);
-  QRL_LOG("transaction signature %d bytes\n", tx.signature.len);
-  qrl_dump(tx.signature.data, tx.signature.len);
+//  if (memcmp(transaction_hash.data, tx.transaction_hash.data, 32)) {
+//    QRL_LOG_EX(QRL_LOG_ERROR, "invalid transaction hash");
+//    return QVEC_NULL;
+//  }
+//
+//  QRL_LOG("transaction pubkey %d bytes\n", tx.public_key.len);
+//  qrl_dump(tx.public_key.data, tx.public_key.len);
+//  QRL_LOG("transaction signature %d bytes\n", tx.signature.len);
+//  qrl_dump(tx.signature.data, tx.signature.len);
   return transaction_hash;
 }

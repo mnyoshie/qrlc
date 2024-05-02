@@ -8,9 +8,13 @@ Requires:
 
 - lcrypto -lleveldb -ljson-c -lsnappy -lpthread
 
+Ubuntu: `yes | sudo apt install lib{leveldb,json-c,ssl}-dev`
+
+Build dependencies: `libbost-dev`
+
 # Known issues
 
-Compiling with gcc produces linker from undefined symbols in libramdomx.a. 
+Compiling with gcc produces linker from undefined symbols in librandomx.a. 
 This seems to be a problem when linking a C++ library [which uses the C++
 standard libs] using a C compiler. And that C compiler couldn't properly
 call ld with appropriate flags needed by a C++ library. Either use a C++
