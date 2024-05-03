@@ -186,7 +186,7 @@ int qrl_gen_keypair(int addr_desc) {
     memcpy(desc_pk + 3, pk, 64);
 
     uint8_t desc_pk_hash[32] = {0};
-    qrl_sha256(desc_pk, 67, desc_pk_hash);
+    qrl_sha256(desc_pk_hash, desc_pk, 67);
 
     QRL_LOG("qrl address hexdump SHA256(DESC+PK)\n");
     qrl_dump(desc_pk_hash, 32);
@@ -202,7 +202,7 @@ int qrl_gen_keypair(int addr_desc) {
     memcpy(verh + 3, desc_pk_hash, 32);
 
     uint8_t verh_hash[32] = {0};
-    qrl_sha256(verh, 35, verh_hash);
+    qrl_sha256(verh_hash, verh, 35);
 
     QRL_LOG("QRL address ");
 

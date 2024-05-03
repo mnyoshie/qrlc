@@ -1,4 +1,3 @@
-#include "randomx/randomx.h"
 #include <stdio.h>
 #include <inttypes.h>
 #include <unistd.h>
@@ -77,7 +76,7 @@ qvec_t qrl_compute_tx_transfer_hash(qtx_t tx) {
   } while (0);
 
   uint8_t data_hash[32];
-  qrl_sha256(data_blob, data_blob_len, data_hash);
+  qrl_sha256(data_hash, data_blob, data_blob_len);
   free(data_blob);
 
   QRL_LOG("data hash: ");
@@ -105,24 +104,9 @@ qvec_t qrl_compute_tx_transfer_hash(qtx_t tx) {
   memcpy(transaction_blob + incrementp(&ctr, sincr), tx.public_key.data, sincr);
   qvec_t transaction_hash = new_qvec(32);
 
-  qrl_sha256(transaction_blob, transaction_blob_len, transaction_hash.data);
+  qrl_sha256(transaction_hash.data, transaction_blob, transaction_blob_len);
   QRL_LOG("computed transaction hash\n");
   qrl_dump(transaction_hash.data, transaction_hash.len);
 
-  //      QRL_LOG("transaction transaction hash %d bytes\n",
-  //              tx.transaction_hash.len);
-  //      qrl_dump(tx.transaction_hash.data,
-  //               tx.transaction_hash.len);
-  //      assert(tx.transaction_hash.len == 32);
-
-//  if (memcmp(transaction_hash.data, tx.transaction_hash.data, 32)) {
-//    QRL_LOG_EX(QRL_LOG_ERROR, "invalid transaction hash");
-//    return QVEC_NULL;
-//  }
-//
-//  QRL_LOG("transaction pubkey %d bytes\n", tx.public_key.len);
-//  qrl_dump(tx.public_key.data, tx.public_key.len);
-//  QRL_LOG("transaction signature %d bytes\n", tx.signature.len);
-//  qrl_dump(tx.signature.data, tx.signature.len);
   return transaction_hash;
 }

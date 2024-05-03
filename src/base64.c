@@ -1,5 +1,5 @@
 #include "base64.h"
-
+#include "utils.h"
 #include "log.h"
 
 static int test_b64(const char *b64, size_t b64len) {

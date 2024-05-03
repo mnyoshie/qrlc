@@ -6,8 +6,8 @@
 
 #randomx version 1.2.1
 
-CXXFLAGS += -O3 -fPIE
-CFLAGS += -O3 -fPIE
+CFLAGS += -O3 -std=gnu11 -fPIE
+CXXFLAGS += -O3 -std=gnu++11 -fPIE
 
 cxxsources =  aes_hash.cpp
 cxxsources += allocator.cpp
@@ -34,7 +34,7 @@ csources += argon2_ssse3.c
 csources += reciprocal.c
 csources += virtual_memory.c
 
-feature-check = $(shell $(CXX) $(CXXFLAGS) tests/$(1).cpp -o $(1)_test.bin $(tonull) && echo 1 || echo 0)
+feature-check = $(shell $(CXX) $(CXXFLAGS) tests/$(1).cpp -o tests/$(1)_test.bin $(tonull) && echo 1 || echo 0)
 check-cpu-feature = $(shell cat /proc/cpuinfo | grep $(1) > /dev/null && echo 1 || echo 0)
 check-compiler-feature = $(shell $(CC) $(2) -dM -E - < /dev/null  | grep $(1) > /dev/null && echo 1 || echo 0)
 
@@ -70,10 +70,10 @@ ifeq ($(machine),x86_64)
   CFLAGS += -maes
 
   # HAVE cpuid
-  ifeq ($(call check-cpu-feature,cpuid),1)
-  CXXFLAGS += -DHAVE_CPUID
-  CFLAGS += -DHAVE_CPUID
-  endif
+#  ifeq ($(call check-cpu-feature,cpuid),1)
+#  CXXFLAGS += -DHAVE_CPUID
+#  CFLAGS += -DHAVE_CPUID
+#  endif
   
   # HAVE SSSE3 
   ifeq ($(call check-compiler-feature,__SSSE3__,-mssse3),1)
@@ -123,13 +123,13 @@ librandomx.a : $(objects)
 	@echo "  CC $< $@"
 	$(Q)$(CC) -c $(CFLAGS) $< -o $@
 
-%.bin: tests/%.o librandomx.a
+%.bin: %.o librandomx.a
 	$(CXX) $< -L. -lrandomx -o $@
 
-test: tests.bin
+test: tests/tests.bin
 	@./$< && echo 'librandomx: OK!'
 
 clean:
-	rm $(objects) librandomx.a *.bin || true
+	rm $(objects) librandomx.a tests/*.bin || true
 
 .PHONY: test

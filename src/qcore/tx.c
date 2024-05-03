@@ -44,7 +44,7 @@ qvec_t qrl_compute_tx_hash(qtx_t tx) {
 
       qvec_t transaction_hash = new_qvec(32);
       assert(transaction_hash.len >= 32);
-      qrl_sha256(transaction_blob, transaction_blob_len, transaction_hash.data);
+      qrl_sha256(transaction_hash.data, transaction_blob, transaction_blob_len);
       QRL_LOG("transaction_hash coinbase: \n");
       qrl_dump(transaction_hash.data, transaction_hash.len);
       free(transaction_blob);

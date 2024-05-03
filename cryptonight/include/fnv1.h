@@ -1,4 +1,4 @@
-// Copyright (c) 2014-2020, The Monero Project
+// Copyright (c) 2018, The Monero Project
 // 
 // All rights reserved.
 // 
@@ -25,18 +25,21 @@
 // INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
 // STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 // THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-// 
-// Parts of this file are originally copyright (c) 2012-2013 The Cryptonote developers
 
-#include <assert.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <string.h>
+#pragma once
 
-#include "jh.h"
-#include "hash-ops.h"
+namespace epee
+{
 
-void hash_extra_jh(const void *data, size_t length, char *hash) {
-  int r = jh_hash(HASH_SIZE * 8, data, 8 * length, (uint8_t*)hash);
-  assert(SUCCESS == r);
+namespace fnv
+{
+  inline uint64_t FNV1a(const char *ptr, size_t sz)
+  {
+    uint64_t h = 0xcbf29ce484222325;
+    for (size_t i = 0; i < sz; ++i)
+      h = (h ^ *(const uint8_t*)ptr++) * 0x100000001b3;
+    return h;
+  }
+}
+
 }

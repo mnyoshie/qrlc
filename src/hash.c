@@ -1,7 +1,5 @@
 #include "hash.h"
-
-extern
-void cn_slow_hash(const void *data, size_t length, char *hash, int variant, int prehashed);
+#include "cryptonight/slow-hash.h"
 
 /*------------\
  * SHAKE-128  |
@@ -53,14 +51,14 @@ void qrl_shake256(qvec_t digest, qvec_t msg) {
 /*------------\
  *  SHA-256   |
  *-----------*/
-void qrl_sha256(const void *message, int message_len, uint8_t *digest) {
+void qrl_sha256(qu8 *digest, const void *msg, size_t msg_len) {
   EVP_MD_CTX *mdctx = EVP_MD_CTX_new();
   assert(mdctx != NULL);
   if (EVP_DigestInit_ex(mdctx, EVP_sha256(), NULL) != 1) {
     assert(0);
   }
 
-  if (EVP_DigestUpdate(mdctx, message, message_len) != 1) {
+  if (EVP_DigestUpdate(mdctx, msg, msg_len) != 1) {
     assert(0);
   }
 
@@ -108,10 +106,10 @@ qvec_t hfunc_randomx(hfunc_ctx ctx, qvec_t msg) {
   return (qvec_t){.data=digest, .len=ctx.digest_len};
 }
 
-qvec_t hfunc_cryptonight7(hfunc_ctx *ctx, qvec_t msg) {
-  qu8 *digest = malloc(ctx->digest_len);
+qvec_t hfunc_cryptonight1(hfunc_ctx ctx, qvec_t msg) {
+  qu8 *digest = malloc(ctx.digest_len);
   assert(digest != NULL);
-  cn_slow_hash(msg.data, msg.len, (void*)digest, 7, 0);
+  cn_slow_hash(msg.data, msg.len, (void*)digest, 1, 0, 0);
 
-  return (qvec_t){.data=digest, .len=ctx->digest_len};
+  return (qvec_t){.data=digest, .len=ctx.digest_len};
 }

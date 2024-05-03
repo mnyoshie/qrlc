@@ -4,6 +4,7 @@
 #include <assert.h>
 #include "qrl.pb-c.h"
 #include "log.h"
+#include "utils.h"
 #include "include/types.h"
 
 

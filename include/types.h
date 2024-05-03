@@ -1,6 +1,8 @@
 #ifndef QRL_TYPES_H
 #define QRL_TYPES_H
 
+#define LIBQRLC
+
 #include <stdlib.h>
 #include "qint.h"
 

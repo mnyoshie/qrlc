@@ -54,13 +54,13 @@ extern "C" {
     tree_hash((const char (*)[crypto::HASH_SIZE]) data, length >> 5, hash);
   }
   static void cn_slow_hash_0(const void *data, size_t length, char *hash) {
-    return cn_slow_hash(data, length, hash, 0/*variant*/, 0/*prehashed*/);
+    return cn_slow_hash(data, length, hash, 0/*variant*/, 0/*prehashed*/, 0);
   }
   static void cn_slow_hash_1(const void *data, size_t length, char *hash) {
-    return cn_slow_hash(data, length, hash, 1/*variant*/, 0/*prehashed*/);
+    return cn_slow_hash(data, length, hash, 1/*variant*/, 0/*prehashed*/, 0);
   }
   static void cn_slow_hash_2(const void *data, size_t length, char *hash) {
-    return cn_slow_hash(data, length, hash, 2/*variant*/, 0/*prehashed*/);
+    return cn_slow_hash(data, length, hash, 2/*variant*/, 0/*prehashed*/, 0);
   }
 }
 POP_WARNINGS

@@ -143,7 +143,7 @@ int xmss_Verifysig(eHashFunction hash_func,
 
     uint32_t n = wotsParams->n;
 
-    unsigned long long i, m_len;
+    unsigned long long i;// m_len;
     unsigned long idx = 0;
     unsigned char wots_pk[wotsParams->keysize];
     unsigned char pkhash[n];
@@ -180,8 +180,8 @@ int xmss_Verifysig(eHashFunction hash_func,
     sig_msg_len -= (n + 4);
 
     // hash message
-    unsigned long long tmp_sig_len = wotsParams->keysize + h * n;
-    m_len = sig_msg_len - tmp_sig_len;
+    //unsigned long long tmp_sig_len = wotsParams->keysize + h * n;
+    //m_len = sig_msg_len - tmp_sig_len;
     //h_msg(msg_h, sig_msg + tmp_sig_len, m_len, hash_key, 3*n, n);
     h_msg(hash_func, msg_h, msg, msglen, hash_key, 3 * n, n);
     //-----------------------

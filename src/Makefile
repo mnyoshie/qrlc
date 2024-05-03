@@ -54,6 +54,7 @@ csources += chain.c
 csources += utils.c
 csources += types.c
 csources += base64.c
+csources += license.c
 csources += pb2types.c
 csources += dev_config.c
 
@@ -62,7 +63,7 @@ csources += cencode.c
 csources += xmssf.c
 csources += qrl.pb-c.c
 csources += protobuf-c.c
-csources += rx-slow-hash.c
+#csources += rx-slow-hash.c
 
 csources += qcore/block.c
 csources += qcore/tx.c

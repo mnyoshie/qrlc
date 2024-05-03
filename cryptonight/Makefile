@@ -4,17 +4,18 @@
 # Written by the QRLC Authors. Inspired from the Linux 
 # kernel Makefile
 
-#cryptonight v2: https://github.com/monero-project/monero/commit/5fd83c13fbf8dc304909345e60a853c15b0de1e5#diff-7000dc02c792439471da62856f839d62
+#cryptonight https://github.com/monero-project/monero/tree/2844b5b8dbcfcfe4b3c9dbdf2d16ce2955b13665 (commit from year 2021)
 
 
-CFLAGS += -O0 -fPIE -I./include
-CXXFLAGS += -O0 -fPIE -I./include 
+CFLAGS += -O3 -std=gnu11 -fPIE -I./include -I../randomx
+CXXFLAGS += -O3 -std=gnu++11 -fPIE -I./include -I../ramdomx
 
 csources += $(directory)aesb.c
+csources += $(directory)src/memwipe.c
+csources += $(directory)rx-slow-hash.c
+csources += $(directory)CryptonightR_JIT.c
 csources += $(directory)blake256.c
 csources += $(directory)chacha.c
-#csources += $(directory)crypto-ops-data.c
-#csources += $(directory)crypto-ops.c
 csources += $(directory)groestl.c
 csources += $(directory)hash-extra-blake.c
 csources += $(directory)hash-extra-groestl.c
@@ -31,7 +32,7 @@ csources += $(directory)tree-hash.c
 
 testall = extra-blake extra-groestl extra-jh extra-skein fast slow-1 slow-2 slow tree
 
-feature-check = $(shell $(CXX) $(CXXFLAGS) tests/$(1).cpp -o $(1)_test.bin $(tonull) && echo 1 || echo 0)
+feature-check = $(shell $(CXX) $(CXXFLAGS) tests/$(1).cpp -o tests/$(1)_test.bin $(tonull) && echo 1 || echo 0)
 check-cpu-feature = $(shell cat /proc/cpuinfo | grep $(1) > /dev/null && echo 1 || echo 0)
 check-compiler-feature = $(shell $(CC) $(2) -dM -E - < /dev/null  | grep $(1) > /dev/null && echo 1 || echo 0)
 
@@ -59,27 +60,25 @@ ifeq ($(call feature-check,hwcap),1)
 endif
 
 ifeq ($(machine),x86_64)
-  cxxsources += $(directory)CryptoNight_x86_vaes.cpp
   CXXFLAGS += -march=native
   CFLAGS += -march=native
   CFLAGS += -maes
+  asms = CryptonightR_template.S
 
   # HAVE cpuid
-  ifeq ($(call check-cpu-feature,cpuid),1)
-  CXXFLAGS += -DHAVE_CPUID
-  CFLAGS += -DHAVE_CPUID
-  endif
+#  ifeq ($(call check-cpu-feature,cpuid),1)
+#  CXXFLAGS += -DHAVE_CPUID
+#  CFLAGS += -DHAVE_CPUID
+#  endif
   
   # HAVE SSSE3 
   ifeq ($(call check-compiler-feature,__SSSE3__,-mssse3),1)
-  csources += argon2_ssse3.c
   CXXFLAGS += -mssse3
   CFLAGS += -mssse3
   endif
   
   # HAVE AVX2
   ifeq ($(call check-compiler-feature,__AVX2__,-mavx2),1)
-  csources += argon2_avx2.c
   CXXFLAGS += -mavx2
   CFLAGS += -mavx2
   endif
@@ -94,8 +93,6 @@ CXXFLAGS += $(EXTRACXXFLAGS)
 CFLAGS += $(EXTRACFLAGS)
 
 ifeq ($(machine),riscv64)
-  cxxsources += jit_compiler_rv64.cpp
-  asms = jit_compiler_rv64_static.S
 endif
 
 #####################################
@@ -120,14 +117,14 @@ libcryptonight.a : $(objects)
 	@echo "  CC $< $@"
 	$(Q)$(CC) -c $(CFLAGS) $< -o $@
 
-%.bin: tests/%.o libcryptonight.a
-	$(CXX) $< -L. -lcryptonight -o $@
+%.bin: %.o libcryptonight.a
+	$(CXX) $< -L. -lcryptonight -L../randomx -lrandomx -lpthread -o $@
 
-test: main.bin
+test: tests/main.bin
 	@bash -c ' \
 	result=0;\
 	for test in $(testall); do \
-		./main.bin $$test tests/tests-$$test.txt $(tonull) && \
+		./$< $$test tests/tests-$$test.txt $(tonull) && \
 			printf "[\e[1;92mPASSED\e[0m]: " || { \
 					printf "[\e[1;91mFAILED\e[0m]: ";result=1; \
 				}; \
@@ -141,6 +138,6 @@ test: main.bin
 
 
 clean:
-	rm $(objects) libcryptonight.a *.bin || true
+	rm $(objects) libcryptonight.a tests/*.bin || true
 
 .PHONY: test

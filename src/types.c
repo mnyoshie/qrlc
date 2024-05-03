@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <inttypes.h>
 #include <assert.h>
 
 #include "log.h"
@@ -48,11 +49,25 @@ void *qrl_memcat(void *data1, size_t len1, void *data2, size_t len2) {
 }
 
 void print_qblock(qblock_t *qblock) {
-#define PRINT_QBLOCK_FIELD(x) printf(#x ": "); qrl_printx(qblock-> x .data, qblock-> x .len)
-  PRINT_QBLOCK_FIELD(block_hdr.hash_hdr);
-  PRINT_QBLOCK_FIELD(block_hdr.hash_phdr);
-  PRINT_QBLOCK_FIELD(block_hdr.merkle_root);
-#undef PRINT_QBLOCK_FIELD
+#define PRINT_FIELD_DATA(x) printf(#x ": "); qrl_printx(qblock-> x .data, qblock-> x .len)
+#define PRINT_FIELD_U32(x) printf("  " #x ": %"PRIu32"\n"); qrl_printx(qblock-> x .data, qblock-> x)
+#define PRINT_FIELD_U64(x) printf("  " #x ": %"PRIu64"\n"); qrl_printx(qblock-> x .data, qblock-> x)
+  PRINT_FIELD_DATA(block_hdr.hash_hdr);
+  PRINT_FIELD_DATA(block_hdr.hash_phdr);
+  PRINT_FIELD_DATA(block_hdr.merkle_root);
+  for (size_t i = 0; i < qblock->nb_txs; i++) {
+    switch (qblock->txs[i].tx_type) {
+      case QTX_TRANSFER:
+        printf("  transaction: transfer\n");
+        break;
+      case QTX_COINBASE:
+        printf("  transaction: coinbase\n");
+        break;
+      default: QRL_LOG_EX(QRL_LOG_ERROR, "  transaction type %d\n",qblock->txs[i].tx_type);
+    }
+  }
+#undef PRINT_FIELD_DATA
+#undef PRINT_FIELD_NUM
 }
 
 void free_qblock(qblock_t *qblock) {

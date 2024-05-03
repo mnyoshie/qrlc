@@ -1,4 +1,6 @@
-#include "randomx/randomx.h"
+// This file is used for testing
+// It is to be removed
+//
 #include <stdio.h>
 #include <inttypes.h>
 #include <unistd.h>
@@ -19,13 +21,6 @@
 #endif
 
 #include <assert.h>
-
-static const char *qrl_license = 
-#include "license.c"
-
-const char *qrl_get_license(void) {
-  return qrl_license;
-}
 
 extern int qrl_gen_keypair(int);
 extern int qrl_verify_sig(qvec_t pkey, qvec_t msg, qvec_t sig);

@@ -1,4 +1,5 @@
-"Copyright (c) 2023-2024 The QRLC Authors\n"
+static const char *qrl_license = 
+"Copyright (c) 2023-2024 The QRLC Authors and others\n"
 "\n"
 "Permission is hereby granted, free of charge, to any person obtaining a\n"
 "copy of this software and associated documentation files (the \"Software\"),\n"
@@ -46,3 +47,8 @@
 "INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,\n"
 "STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF\n"
 "THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.\n";
+
+const char *qrl_get_license(void) {
+  return qrl_license;
+}
+
