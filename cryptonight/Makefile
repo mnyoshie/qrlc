@@ -7,8 +7,8 @@
 #cryptonight https://github.com/monero-project/monero/tree/2844b5b8dbcfcfe4b3c9dbdf2d16ce2955b13665 (commit from year 2021)
 
 
-CFLAGS += -O3 -std=gnu11 -fPIE -I./include -I../randomx
-CXXFLAGS += -O3 -std=gnu++11 -fPIE -I./include -I../ramdomx
+CFLAGS += -O2 -std=gnu11 -fPIE -I./include -I../randomx
+CXXFLAGS += -O2 -std=gnu++11 -fPIE -I./include -I../ramdomx
 
 csources += $(directory)aesb.c
 csources += $(directory)src/memwipe.c
@@ -39,7 +39,7 @@ check-compiler-feature = $(shell $(CC) $(2) -dM -E - < /dev/null  | grep $(1) > 
 ifeq ($(V),1)
   Q=
 else
-	tonull=>/dev/null 2>/dev/null
+  tonull=>/dev/null 2>/dev/null
   Q=@
 endif
 

@@ -1,5 +1,6 @@
 #include "hash.h"
-#include "cryptonight/slow-hash.h"
+#include "utils.h"
+#include "cryptonight/hash-ops.h"
 
 /*------------\
  * SHAKE-128  |

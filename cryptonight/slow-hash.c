@@ -41,7 +41,6 @@
 #include "variant2_int_sqrt.h"
 #include "variant4_random_math.h"
 #include "CryptonightR_JIT.h"
-#include "slow-hash.h"
 
 #include <errno.h>
 

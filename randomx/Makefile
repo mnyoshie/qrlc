@@ -41,7 +41,7 @@ check-compiler-feature = $(shell $(CC) $(2) -dM -E - < /dev/null  | grep $(1) > 
 ifeq ($(V),1)
   Q=
 else
-	tonull=>/dev/null 2>/dev/null
+  tonull=>/dev/null 2>/dev/null
   Q=@
 endif
 

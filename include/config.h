@@ -1,8 +1,0 @@
-#ifndef QRL_CONFIG_H
-#define QRL_CONFIG_H
-
-#define QRL_MACHINE_LITTLE_ENDIAN 1
-#define QRL_DEVELOPMENT_MODE 1
-//#define QRL_MACHINE_BIG_ENDIAN 1
-
-#endif

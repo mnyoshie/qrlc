@@ -1,13 +1,14 @@
 # Makefile - Makefile for most linux based systems
 # to get rid of cmake builds.
 
-# Written by the QRLC Authors. Inspired from the Linux 
-# kernel Makefile
+# Written by the QRLC Authors.
 
 #qrlc version draft
 
 #CC = clang
-#LD = ld.lld
+
+#HACK: link with standard C++ libs
+LD = $(CXX)
 
 CFLAGS = -Ofast 
 CFLAGS += -ggdb3
@@ -17,7 +18,7 @@ CFLAGS += -fpie
 CFLAGS += -I.
 CFLAGS += -I..
 CFLAGS += -fstack-protector
-CFLAGS += -fsanitize=address
+#CFLAGS += -fsanitize=address
 CFLAGS += -Wformat
 CFLAGS += -Wformat-security
 CFLAGS += -Wall
@@ -36,7 +37,6 @@ ifeq ($(shell uname -o),Android)
   LDFLAGS += -ldl
   LDFLAGS += -dynamic-linker /system/bin/linker64
 endif
-LDFLAGS += -lc
 LDFLAGS += -lm
 LDFLAGS += -lstdc++
 LDFLAGS += -ljson-c
@@ -46,7 +46,7 @@ LDFLAGS += -lleveldb
 LDFLAGS += -lxmssf_qrl
 LDFLAGS += -lrandomx
 LDFLAGS += -lcryptonight
-LDFLAGS += -fsanitize=address
+#LDFLAGS += -fsanitize=address
 
 csources = log.c
 csources += hash.c
@@ -107,10 +107,10 @@ libqrlc.a : $(objects)
 
 
 main : main.o libqrlc.a
-	$(CC) $< $(LDFLAGS) -L. -lqrlc -o $@
+	$(LD) $< $(LDFLAGS) -L. -lqrlc -o $@
 
 $(main) : $(main).o libqrlc.a
-	$(CC) $< $(LDFLAGS) -L. -lqrlc -o $@
+	$(LD) $< $(LDFLAGS) -L. -lqrlc -o $@
 
 ifeq ($(main),)
 clean:

@@ -40,7 +40,6 @@
 #include "c_threads.h"
 #include "hash-ops.h"
 #include "misc_log_ex.h"
-#include "rx-slow-hash.h"
 
 #define RX_LOGCAT	"randomx"
 

@@ -8,6 +8,7 @@
 *.a
 *.tmp
 
+include/config.h
 t.c
 rm
 main.c
