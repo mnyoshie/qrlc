@@ -7,7 +7,6 @@
 
 #include "include/types.h"
 #include "randomx/randomx.h"
-#include "cryptonight/hash-ops.h"
 
 typedef struct hfunc_ctx hfunc_ctx;
 typedef qvec_t (*hfunc_func)(hfunc_ctx , qvec_t msg);
@@ -25,7 +24,7 @@ struct hfunc_ctx {
     } cryptonight;
   };
   hfunc_func hfunc;
-//void (*hfunc)(struct hash_func *, qvec_t digest, qvec_t msg);
+//void (*hfunc)(struct hash_func , qvec_t digest, qvec_t msg);
 };
 
 /*------------\

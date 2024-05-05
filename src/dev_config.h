@@ -2,7 +2,7 @@
 #define QRL_DEV_CONFIG_H
 
 #define QRL_MAINNET1 "mainnet-1.automated.theqrl.org:19009"
-#define QRL_MAINNET2 "mainnet-1.automated.theqrl.org:19009"
+#define QRL_MAINNET2 "mainnet-2.automated.theqrl.org:19009"
 
 /* self.hard_fork_heights = [942375, 1938000, 2078800] */
 #define QRL_HARD_FORK_HEIGHT0 942375

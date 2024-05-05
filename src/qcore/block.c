@@ -1,4 +1,7 @@
+#include "hash.h"
+#include "utils.h"
 #include "block.h"
+#include "dev_config.h"
 
 qvec_t qrl_compute_hash_hdr(const qblock_hdr_t block_hdr, hfunc_ctx hfunc) {
   struct inctr_t ctr = {0};
@@ -78,7 +81,6 @@ qvec_t qrl_compute_hash_hdr(const qblock_hdr_t block_hdr, hfunc_ctx hfunc) {
    * */
   /* XXX: hfunc->randomx.{machine,cache} are initialized outside of this function and
    * changes depending on the seed height */
-  qrl_dump(mining_blob_final, ctr.i);
   return hfunc.hfunc(hfunc, (qvec_t){.data=mining_blob_final, .len=ctr.i});
 }
 

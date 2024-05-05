@@ -7,10 +7,10 @@
 
 #CC = clang
 
-#HACK: link with standard C++ libs
+#HACK: link the objects with additional C++ standard libs
 LD = $(CXX)
 
-CFLAGS = -Ofast 
+CFLAGS = -O2
 CFLAGS += -ggdb3
 CFLAGS += -std=c99
 CFLAGS += -D_FORTIFY_SOURCE=2
@@ -107,10 +107,10 @@ libqrlc.a : $(objects)
 
 
 main : main.o libqrlc.a
-	$(LD) $< $(LDFLAGS) -L. -lqrlc -o $@
+	$(LD) $< -L. -lqrlc $(LDFLAGS) -o $@
 
 $(main) : $(main).o libqrlc.a
-	$(LD) $< $(LDFLAGS) -L. -lqrlc -o $@
+	$(LD) $< -L. -lqrlc $(LDFLAGS) -o $@
 
 ifeq ($(main),)
 clean:

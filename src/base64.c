@@ -4,6 +4,7 @@
 
 static int test_b64(const char *b64, size_t b64len) {
   size_t i = 0;
+  size_t eqctr = 0;
   if (b64len % 4) return 1;
 
   for (; i < b64len; i++) {
@@ -26,10 +27,10 @@ static int test_b64(const char *b64, size_t b64len) {
     default:
       return 1;
   }
-
-  for (; i < b64len; i++)
+  for (; i < b64len; i++, eqctr++)
     if (b64[i] != '=') return 1;
 
+  if (eqctr > 3) return 1;
   return 0;
 }
 

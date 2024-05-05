@@ -188,6 +188,24 @@ exit:
 }
 
 int qrl_update_chain_height(qchain_t *chain, qu64 height) {
- 
-  return 0;
+  leveldb_writeoptions_t *woptions = NULL;
+  int ret = 0;
+  char *err = NULL;
+
+
+  woptions = leveldb_writeoptions_create();
+  assert(woptions != NULL);
+  leveldb_put(chain->state, woptions, "blockheight", 11, (void*)&(qu64){QINT2BIG_64(height)}, sizeof(height), &err);
+  if (err != NULL) {
+    QRL_LOG_EX(QRL_LOG_ERROR,
+               "%s: leveldb: %s. failed to get blockheight\n",
+               chain->state_dir, err);
+    ret = 1;
+    goto exit;
+  }
+
+exit:
+  leveldb_free(err);
+  leveldb_writeoptions_destroy(woptions);
+  return ret;
 }

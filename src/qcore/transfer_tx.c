@@ -5,16 +5,8 @@
 #include "log.h"
 #include "utils.h"
 #include "hash.h"
-#include "chain.h"
-
-#include "include/types.h"
 
 #include "dev_config.h"
-//#include "include/qrl.pb-c.h"
-
-#ifdef NDEBUG
-#  error "Don't turn NDEBUG!"
-#endif
 
 #include <assert.h>
 

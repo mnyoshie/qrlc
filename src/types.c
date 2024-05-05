@@ -7,16 +7,11 @@
 #include "include/types.h"
 
 /* free qvec */
-void fqvec(qvec_t *q){
+void free_qvec(qvec_t *q){
   free(q->data);
   free(q);
 }
 
-/* delete qvec */
-void dqvec(qvec_t q){
-  free(q.data);
-  q.len = 0;
-}
 
 qvec_t *malloc_qvec(size_t size){
   qvec_t *q = malloc(sizeof(*q));
@@ -34,6 +29,12 @@ qvec_t new_qvec(size_t size){
   assert(q != NULL);
 
   return (qvec_t){.data=q, .len=size};
+}
+
+/* delete qvec */
+void del_qvec(qvec_t q){
+  free(q.data);
+  q.len = 0;
 }
 
 void *qrl_memcat(void *data1, size_t len1, void *data2, size_t len2) {

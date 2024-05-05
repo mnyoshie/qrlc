@@ -1,9 +1,5 @@
 #ifndef QBLOCK_H
 
-#include "hash.h"
-#include "utils.h"
-#include "dev_config.h"
-
 #include "include/types.h"
 
 

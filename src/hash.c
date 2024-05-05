@@ -96,21 +96,31 @@ void qrl_randomx_hash2(randomx_vm *machine, qvec_t digest, qvec_t msg) {
   randomx_calculate_hash(machine, msg.data, msg.len, digest.data);
 }
 
+/*------------------\
+ *  HFUNC RANDOMX   |
+ `-----------------*/
+/* randomx header hashing function */
 qvec_t hfunc_randomx(hfunc_ctx ctx, qvec_t msg) {
+  assert(ctx.digest_len >= RANDOMX_HASH_SIZE);
+
   qu8 *digest = malloc(ctx.digest_len);
   assert(digest != NULL);
 
-  char buf[RANDOMX_HASH_SIZE] = {0};
-  randomx_calculate_hash(ctx.randomx.machine, msg.data, msg.len, buf);
+  randomx_calculate_hash(ctx.randomx.machine, msg.data, msg.len, digest);
 
-  memcpy(digest, buf, ctx.digest_len);
   return (qvec_t){.data=digest, .len=ctx.digest_len};
 }
 
+/*----------------------\
+ *  HFUNC CRYPTONIGHT   |
+ `---------------------*/
+/* cryptonight1 header hashing function */
 qvec_t hfunc_cryptonight1(hfunc_ctx ctx, qvec_t msg) {
+  /* HASH_SIZE defined in cryptonight/hash-ops.h */
+  assert(ctx.digest_len >= HASH_SIZE);
   qu8 *digest = malloc(ctx.digest_len);
   assert(digest != NULL);
-  cn_slow_hash(msg.data, msg.len, (void*)digest, 1, 0, 0);
+  cn_slow_hash(msg.data, msg.len, (void*)digest, 1 /* variant */, 0 /* pre-hashed*/, 0 /* height */);
 
   return (qvec_t){.data=digest, .len=ctx.digest_len};
 }

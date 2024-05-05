@@ -32,6 +32,7 @@ feature += bswap
 feature += leveldb
 feature += json-c
 
+$(shell echo Configuring... may take a minute >&2)
 $(shell rm config.h 2>/dev/null)
 
 ifneq ($(call ctest-feature,sane),1)
