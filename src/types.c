@@ -50,25 +50,61 @@ void *qrl_memcat(void *data1, size_t len1, void *data2, size_t len2) {
 }
 
 void print_qblock(qblock_t *qblock) {
-#define PRINT_FIELD_DATA(x) printf(#x ": "); qrl_printx(qblock-> x .data, qblock-> x .len)
-#define PRINT_FIELD_U32(x) printf("  " #x ": %"PRIu32"\n"); qrl_printx(qblock-> x .data, qblock-> x)
-#define PRINT_FIELD_U64(x) printf("  " #x ": %"PRIu64"\n"); qrl_printx(qblock-> x .data, qblock-> x)
-  PRINT_FIELD_DATA(block_hdr.hash_hdr);
-  PRINT_FIELD_DATA(block_hdr.hash_phdr);
-  PRINT_FIELD_DATA(block_hdr.merkle_root);
+//  qvec_t hash_hdr;
+//  qu64 block_number;
+//
+//  // unix since epoch jan 1, 1970
+//  qu64 timestamp; 
+//
+////  size_t pheader_hash_len;
+////  qu8 *pheader_hash;
+//  qvec_t hash_phdr;
+//
+//  qu64 reward_block;
+//  qu64 reward_fee;
+//
+//  qvec_t merkle_root;
+////  size_t merkle_root_len;
+////  qu8 *merkle_root;
+//
+//  qu64 mining_nonce;
+//  qu64 extra_nonce;
+#define PRINT_FIELD_DATA(a, x) printf(a #x ": "); qrl_printx(qblock-> x .data, qblock-> x .len)
+#define PRINT_FIELD_U32(a, x) printf(a #x ": %"PRIu32"\n", qblock-> x)
+#define PRINT_FIELD_U64(a, x) printf(a #x ": %"PRIu64"\n", qblock-> x)
+  PRINT_FIELD_U64("", block_hdr.block_number);
+  PRINT_FIELD_U64("", block_hdr.timestamp);
+  PRINT_FIELD_U64("", block_hdr.reward_block);
+  PRINT_FIELD_U64("", block_hdr.reward_fee);
+  PRINT_FIELD_U32("", block_hdr.mining_nonce);
+  PRINT_FIELD_U64("", block_hdr.extra_nonce);
+
+  PRINT_FIELD_DATA("", block_hdr.hash_hdr);
+  PRINT_FIELD_DATA("", block_hdr.hash_phdr);
+  PRINT_FIELD_DATA("", block_hdr.merkle_root);
   for (size_t i = 0; i < qblock->nb_txs; i++) {
+    PRINT_FIELD_U32("  ", txs[i].tx_type);
+    PRINT_FIELD_DATA("  ", txs[i].master_addr);
+    PRINT_FIELD_DATA("  ", txs[i].signature);
+    PRINT_FIELD_DATA("  ", txs[i].public_key);
+    PRINT_FIELD_DATA("  ", txs[i].transaction_hash);
+    PRINT_FIELD_U64("  ", txs[i].fee);
+    PRINT_FIELD_U64("  ", txs[i].nonce);
     switch (qblock->txs[i].tx_type) {
       case QTX_TRANSFER:
-        printf("  transaction: transfer\n");
+        PRINT_FIELD_DATA("  ", txs[i].transfer.message_data);
         break;
       case QTX_COINBASE:
-        printf("  transaction: coinbase\n");
+        PRINT_FIELD_DATA("    ", txs[i].coinbase.addr_to);
+        PRINT_FIELD_U64("    ", txs[i].coinbase.amount);
         break;
       default: QRL_LOG_EX(QRL_LOG_ERROR, "  transaction type %d\n",qblock->txs[i].tx_type);
     }
+    puts("");
   }
 #undef PRINT_FIELD_DATA
-#undef PRINT_FIELD_NUM
+#undef PRINT_FIELD_U32
+#undef PRINT_FIELD_U64
 }
 
 void free_qblock(qblock_t *qblock) {

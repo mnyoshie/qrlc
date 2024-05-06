@@ -9,7 +9,7 @@
 #include "hash.h"
 #include "log.h"
 #include "utils.h"
-#include "include/types.h"
+#include "xmssf.h"
 
 #include "xmss-alt/algsxmss_fast.h"
 #include "xmss-alt/xmss_params.h"

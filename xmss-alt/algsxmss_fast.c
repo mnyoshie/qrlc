@@ -136,8 +136,8 @@ static void treehash_setup(eHashFunction hash_func,
 
     lastnode = idx + (1 << height);
 
-    const int bound = h - k;
-    for (i = 0; i < bound; i++) {
+    const int64_t bound = h - k;
+    for (i = 0; (int64_t)i < bound; i++) {
         state->treehash[i].h = i;
         state->treehash[i].completed = 1;
         state->treehash[i].stackusage = 0;
@@ -341,7 +341,7 @@ static char bds_state_update(eHashFunction hash_func,
     uint32_t node_addr[8];
     uint32_t ots_addr[8];
 
-    int nodeh;
+    uint32_t nodeh;
     int idx = state->next_leaf;
     if (idx == 1 << XMSS_TREEHEIGHT) {
         return 1;
@@ -504,7 +504,7 @@ int xmssfast_Genkeypair(eHashFunction hash_func,
         printf("Not a valid h, only even numbers supported! Try again with an even number");
         return -1;
     }
-    unsigned int k = params->k;
+    //unsigned int k = params->k;
     unsigned int n = params->n;
 
     // Set idx = 0
@@ -599,8 +599,8 @@ int xmssfast_Signmsg(eHashFunction hash_func,
                      unsigned char *msg,
                      unsigned long long msglen)
 {
-    unsigned int n = params->n;
-    uint16_t i = 0;
+    uint32_t n = params->n;
+    uint32_t i = 0;
 
     // Extract SK
     unsigned long idx =
@@ -625,7 +625,7 @@ int xmssfast_Signmsg(eHashFunction hash_func,
     sk[3] = (idx + 1) & 255;
     // -- Secret key for this non-forward-secure version is now updated.
     // -- A productive implementation should use a file handle instead and write the updated secret key at this point!
-    unsigned long long sig_msg_len = 0;
+    //unsigned long long sig_msg_len = 0;
     // Init working params
     unsigned char R[n];
     unsigned char msg_h[n];
@@ -647,7 +647,7 @@ int xmssfast_Signmsg(eHashFunction hash_func,
     h_msg(hash_func, msg_h, msg, msglen, hash_key, 3 * n, n);
 
     // Start collecting signature
-    sig_msg_len = 0;
+    //sig_msg_len = 0;
 
     // Copy index to signature
     sig_msg[0] = (idx >> 24) & 255;
@@ -656,14 +656,14 @@ int xmssfast_Signmsg(eHashFunction hash_func,
     sig_msg[3] = idx & 255;
 
     sig_msg += 4;
-    sig_msg_len += 4;
+    //sig_msg_len += 4;
 
     // Copy R to signature
     for (i = 0; i < n; i++)
         sig_msg[i] = R[i];
 
     sig_msg += n;
-    sig_msg_len += n;
+    //sig_msg_len += n;
 
     // ----------------------------------
     // Now we start to "really sign"
@@ -679,7 +679,7 @@ int xmssfast_Signmsg(eHashFunction hash_func,
     // Compute WOTS signature
     wots_sign(hash_func, sig_msg, msg_h, ots_seed, &(params->wots_par), pub_seed, ots_addr);
     sig_msg += params->wots_par.keysize;
-    sig_msg_len += params->wots_par.keysize;
+    //sig_msg_len += params->wots_par.keysize;
 
     // the auth path was already computed during the previous round
     memcpy(sig_msg, state->auth, params->h * params->n);
@@ -690,7 +690,7 @@ int xmssfast_Signmsg(eHashFunction hash_func,
     }
 
     sig_msg += params->h * params->n;
-    sig_msg_len += params->h * params->n;
+    //sig_msg_len += params->h * params->n;
 
     //Whipe secret elements?
     //zerobytes(tsk, CRYPTO_SECRETKEYBYTES);

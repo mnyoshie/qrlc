@@ -221,7 +221,7 @@ int xmss_Signmsg(eHashFunction hash_func,
                  unsigned char *sig_msg,
                  unsigned char *msg,
                  size_t msglen) {
-    unsigned long long sig_msg_len;
+    // unsigned long long sig_msg_len;
     uint16_t n = params->n;
     uint16_t i = 0;
 
@@ -271,7 +271,7 @@ int xmss_Signmsg(eHashFunction hash_func,
     h_msg(hash_func, msg_h, msg, msglen, hash_key, 3 * n, n);
 
     // Start collecting signature
-    sig_msg_len = 0;
+    //sig_msg_len = 0;
 
     // Copy index to signature
     sig_msg[0] = (idx >> 24) & 255;
@@ -280,13 +280,13 @@ int xmss_Signmsg(eHashFunction hash_func,
     sig_msg[3] = idx & 255;
 
     sig_msg += 4;
-    sig_msg_len += 4;
+    //sig_msg_len += 4;
 
     // Copy R to signature
     for (i = 0; i < n; i++)
         sig_msg[i] = R[i];
     sig_msg += n;
-    sig_msg_len += n;
+    //sig_msg_len += n;
 
     // ----------------------------------
     // Now we start to "really sign"
@@ -303,11 +303,11 @@ int xmss_Signmsg(eHashFunction hash_func,
     wots_sign(hash_func, sig_msg, msg_h, ots_seed, &(params->wots_par), pub_seed, ots_addr);
 
     sig_msg += params->wots_par.keysize;
-    sig_msg_len += params->wots_par.keysize;
+    //sig_msg_len += params->wots_par.keysize;
 
     compute_authpath_wots(hash_func, root, sig_msg, idx, sk_seed, params, pub_seed, ots_addr);
     sig_msg += params->h * n;
-    sig_msg_len += params->h * n;
+    // sig_msg_len += params->h * n;
 
     //Whipe secret elements?
     //zerobytes(tsk, CRYPTO_SECRETKEYBYTES);

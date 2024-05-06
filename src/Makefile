@@ -10,7 +10,7 @@
 #HACK: link the objects with additional C++ standard libs
 LD = $(CXX)
 
-CFLAGS = -O2
+CFLAGS = -O0
 CFLAGS += -ggdb3
 CFLAGS += -std=c99
 CFLAGS += -D_FORTIFY_SOURCE=2
@@ -18,7 +18,7 @@ CFLAGS += -fpie
 CFLAGS += -I.
 CFLAGS += -I..
 CFLAGS += -fstack-protector
-#CFLAGS += -fsanitize=address
+CFLAGS += -fsanitize=address
 CFLAGS += -Wformat
 CFLAGS += -Wformat-security
 CFLAGS += -Wall
@@ -46,7 +46,7 @@ LDFLAGS += -lleveldb
 LDFLAGS += -lxmssf_qrl
 LDFLAGS += -lrandomx
 LDFLAGS += -lcryptonight
-#LDFLAGS += -fsanitize=address
+LDFLAGS += -fsanitize=address
 
 csources = log.c
 csources += hash.c

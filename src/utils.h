@@ -61,6 +61,7 @@ static inline uint64_t qbswap_64(uint64_t n) {
 #  define QINT2LIT_32(x) x
 #  define QINT2LIT_16(x) x
 
+
 #elif defined(QBIG_ENDIAN)
 
 #  define QINT2LIT_64(x) QBSWAP64(x)
@@ -74,6 +75,16 @@ static inline uint64_t qbswap_64(uint64_t n) {
 #else
 #  error "unknown machine endian"
 #endif /* QRL_MACHINE_*_ENDIAN */
+
+#if SIZE_MAX == 0xffffffff /* sizeof(size_t) == 4 */
+#  define QINT2LIT_SIZET(x) QINT2LIT_32(x)
+#  define QINT2BIG_SIZET(x) QINT2BIG_32(x)
+#elif SIZE_MAX == 0xffffffffffffffff /* sizeof(size_t) == 8 */
+#  define QINT2LIT_SIZET(x) QINT2LIT_64(x)
+#  define QINT2BIG_SIZET(x) QINT2BIG_64(x)
+#else
+#  error "unsupported sizeof(size_t) size"
+#endif
 
 #ifdef __has_builtin
 #  if __has_builtin(__builtin_add_overflow) && \

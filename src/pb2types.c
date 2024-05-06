@@ -39,31 +39,31 @@ qvec_t qblock_pack(const qblock_t *qblock) {
   /* clang-format off */
   /**************BLOCK HEADER***************************/
   pbblock->header->hash_header        = qvec_to_pbvec(qblock->block_hdr.hash_hdr);
-  pbblock->header->block_number       =               qblock->block_hdr.block_number;
-  pbblock->header->timestamp_seconds  =               qblock->block_hdr.timestamp;    
+  pbblock->header->block_number       =   QINT2LIT_64(qblock->block_hdr.block_number);
+  pbblock->header->timestamp_seconds  =   QINT2LIT_64(qblock->block_hdr.timestamp);    
   pbblock->header->hash_header_prev   = qvec_to_pbvec(qblock->block_hdr.hash_phdr); 
-  pbblock->header->reward_block       =               qblock->block_hdr.reward_block; 
-  pbblock->header->reward_fee         =               qblock->block_hdr.reward_fee;   
+  pbblock->header->reward_block       =   QINT2LIT_64(qblock->block_hdr.reward_block); 
+  pbblock->header->reward_fee         =   QINT2LIT_64(qblock->block_hdr.reward_fee);   
   pbblock->header->merkle_root        = qvec_to_pbvec(qblock->block_hdr.merkle_root); 
-  pbblock->header->mining_nonce       =               qblock->block_hdr.mining_nonce; 
-  pbblock->header->extra_nonce        =               qblock->block_hdr.extra_nonce;
+  pbblock->header->mining_nonce       =   QINT2LIT_32(qblock->block_hdr.mining_nonce); 
+  pbblock->header->extra_nonce        =   QINT2LIT_64(qblock->block_hdr.extra_nonce);
 
   /**************TRANSACTIONS***************************/
 
-  pbblock->n_transactions = qblock->nb_txs;
+  pbblock->n_transactions = QINT2LIT_SIZET(qblock->nb_txs);
   pbblock->transactions = malloc(sizeof(*pbblock->transactions));
   assert(pbblock->transactions != NULL);
   (*pbblock->transactions) = malloc(sizeof(**pbblock->transactions)*qblock->nb_txs);
   assert(*pbblock->transactions != NULL);
 
-  for (qu64 i = 0; i < qblock->nb_txs; i++) {
+  for (qu64 i = 0; i < pbblock->n_transactions; i++) {
     qrl__transaction__init((*pbblock->transactions) + i);
     (*pbblock->transactions)[i].transaction_type_case =               qblock->txs[i].tx_type;
     (*pbblock->transactions)[i].master_addr           = qvec_to_pbvec(qblock->txs[i].master_addr);
-    (*pbblock->transactions)[i].fee                   =               qblock->txs[i].fee;
+    (*pbblock->transactions)[i].fee                   =   QINT2LIT_64(qblock->txs[i].fee);
     (*pbblock->transactions)[i].public_key            = qvec_to_pbvec(qblock->txs[i].public_key);
     (*pbblock->transactions)[i].signature             = qvec_to_pbvec(qblock->txs[i].signature);
-    (*pbblock->transactions)[i].nonce                 =               qblock->txs[i].nonce;
+    (*pbblock->transactions)[i].nonce                 =   QINT2LIT_64(qblock->txs[i].nonce);
     (*pbblock->transactions)[i].transaction_hash      = qvec_to_pbvec(qblock->txs[i].transaction_hash);
   }
   /* clang-format on */
@@ -85,46 +85,52 @@ qblock_t *qblock_unpack(const qvec_t *block) {
   /* clang-format off */
   /**************BLOCK HEADER***************************/
   qblock->block_hdr.hash_hdr     = pbvec_to_qvec(pbblock->header->hash_header);
-  qblock->block_hdr.block_number =               pbblock->header->block_number;
-  qblock->block_hdr.timestamp    =               pbblock->header->timestamp_seconds;
+  qblock->block_hdr.block_number =   QINT2LIT_64(pbblock->header->block_number);
+  qblock->block_hdr.timestamp    =   QINT2LIT_64(pbblock->header->timestamp_seconds);
   qblock->block_hdr.hash_phdr    = pbvec_to_qvec(pbblock->header->hash_header_prev);
-  qblock->block_hdr.reward_block =               pbblock->header->reward_block;
-  qblock->block_hdr.reward_fee   =               pbblock->header->reward_fee;
+  qblock->block_hdr.reward_block =   QINT2LIT_64(pbblock->header->reward_block);
+  qblock->block_hdr.reward_fee   =   QINT2LIT_64(pbblock->header->reward_fee);
   qblock->block_hdr.merkle_root  = pbvec_to_qvec(pbblock->header->merkle_root);
-  qblock->block_hdr.mining_nonce =               pbblock->header->mining_nonce;
-  qblock->block_hdr.extra_nonce  =               pbblock->header->extra_nonce;
+  qblock->block_hdr.mining_nonce =   QINT2LIT_32(pbblock->header->mining_nonce);
+  qblock->block_hdr.extra_nonce  =   QINT2LIT_64(pbblock->header->extra_nonce);
 
   /**************TRANSACTIONS***************************/
-  qblock->nb_txs = pbblock->n_transactions;
+  qblock->nb_txs = QINT2LIT_SIZET(pbblock->n_transactions);
   qblock->txs = malloc(sizeof(*qblock->txs)*qblock->nb_txs);
   assert(qblock->txs != NULL);
+  printf("nb_tx %zu\n", qblock->nb_txs);
   for (size_t i = 0; i < qblock->nb_txs; i++) {
-    qblock->txs[i].tx_type          =               (*pbblock->transactions)[i].transaction_type_case;
-    qblock->txs[i].master_addr      = pbvec_to_qvec((*pbblock->transactions)[i].master_addr);
-    qblock->txs[i].fee              =               (*pbblock->transactions)[i].fee;
-    qblock->txs[i].public_key       = pbvec_to_qvec((*pbblock->transactions)[i].public_key);
-    qblock->txs[i].signature        = pbvec_to_qvec((*pbblock->transactions)[i].signature);
-    qblock->txs[i].nonce            =               (*pbblock->transactions)[i].nonce;
-    qblock->txs[i].transaction_hash = pbvec_to_qvec((*pbblock->transactions)[i].transaction_hash);
+    qblock->txs[i].tx_type          =               (*pbblock->transactions[i]).transaction_type_case;
+    qblock->txs[i].master_addr      = pbvec_to_qvec((*pbblock->transactions[i]).master_addr);
+    qblock->txs[i].fee              =   QINT2LIT_64((*pbblock->transactions[i]).fee);
+    qblock->txs[i].public_key       = pbvec_to_qvec((*pbblock->transactions[i]).public_key);
+    qblock->txs[i].signature        = pbvec_to_qvec((*pbblock->transactions[i]).signature);
+    qblock->txs[i].nonce            =   QINT2LIT_64((*pbblock->transactions[i]).nonce);
+    qblock->txs[i].transaction_hash = pbvec_to_qvec((*pbblock->transactions[i]).transaction_hash);
 
     switch (qblock->txs[i].tx_type) {
       case QTX_TRANSFER:
 
-        qblock->txs[i].transfer.n_addrs_to   =                (*pbblock->transactions)[i].transfer->n_addrs_to;
-        for (size_t t = 0; i < qblock->txs[i].transfer.n_addrs_to; i++)
-          qblock->txs[i].transfer.addrs_to[t] = pbvec_to_qvec((*pbblock->transactions)[i].transfer->addrs_to[t]);
+        qblock->txs[i].transfer.n_addrs_to   =  QINT2LIT_SIZET((*pbblock->transactions[i]).transfer->n_addrs_to);
+        qblock->txs[i].transfer.addrs_to = malloc(sizeof(qvec_t)*qblock->txs[i].transfer.n_addrs_to);
+        for (size_t t = 0; t < qblock->txs[i].transfer.n_addrs_to; t++) {
+          //printf("tx %zu\n", t);
+          //qblock->txs[i].transfer.addrs_to[t] = pbvec_to_qvec((*(pbblock->transactions[i])).transfer->addrs_to[t]);
+          qblock->txs[i].transfer.addrs_to[t] = pbvec_to_qvec(pbblock->transactions[i]->transfer->addrs_to[t]);
+        }
 
-        qblock->txs[i].transfer.n_amounts    =                (*pbblock->transactions)[i].transfer->n_amounts;
-        for (size_t t = 0; t < qblock->txs[i].transfer.n_amounts; i++)
-          qblock->txs[i].transfer.amounts[t] =                (*pbblock->transactions)[i].transfer->amounts[t];
+        qblock->txs[i].transfer.n_amounts    =  QINT2LIT_SIZET(pbblock->transactions[i]->transfer->n_amounts);
+        qblock->txs[i].transfer.amounts      = malloc(sizeof(qu64)*qblock->txs[i].transfer.n_amounts);
+        for (size_t t = 0; t < qblock->txs[i].transfer.n_amounts; t++)
+          qblock->txs[i].transfer.amounts[t] =                 pbblock->transactions[i]->transfer->amounts[t];
 
-        qblock->txs[i].transfer.message_data = pbvec_to_qvec((*pbblock->transactions)[i].transfer->message_data);
+        qblock->txs[i].transfer.message_data =  pbvec_to_qvec(pbblock->transactions[i]->transfer->message_data);
         assert(qblock->txs[i].transfer.n_addrs_to == qblock->txs[i].transfer.n_amounts);
         break;
 
       case QTX_COINBASE:
-        qblock->txs[i].coinbase.amount   =               (*pbblock->transactions)[i].coinbase->amount;
-        qblock->txs[i].coinbase.addr_to  = pbvec_to_qvec((*pbblock->transactions)[i].coinbase->addr_to);
+        qblock->txs[i].coinbase.amount   =               pbblock->transactions[i]->coinbase->amount;
+        qblock->txs[i].coinbase.addr_to  = pbvec_to_qvec(pbblock->transactions[i]->coinbase->addr_to);
         break;
       default: QRL_LOG_EX(QRL_LOG_ERROR, "unknown transaction type %d\n",qblock->txs[i].tx_type);  assert(0);
     }

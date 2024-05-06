@@ -28,5 +28,5 @@ libxmssf_qrl.a : $(objects) algsxmss_fast.o
 	$(Q)$(CC) -c $(CFLAGS) $< -o $@
 
 clean:
-	rm $(objects) libxmss_qrl.a libxmssf_qrl.a || true
+	rm $(objects) algsxmss_fast.o algsxmss.o libxmss_qrl.a libxmssf_qrl.a || true
 

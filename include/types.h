@@ -37,7 +37,7 @@ struct qblock_hdr_t {
 //  size_t merkle_root_len;
 //  qu8 *merkle_root;
 
-  qu64 mining_nonce;
+  qu32 mining_nonce;
   qu64 extra_nonce;
 };
 
@@ -64,15 +64,15 @@ typedef enum qtx_type_t qtx_type_t;
 typedef struct qtx_transfer_t qtx_transfer_t;
 struct qtx_transfer_t { 
   qvec_t message_data;
-  qu32 n_amounts; 
-  qu32 *amounts; 
-  qu32 n_addrs_to; 
+  size_t n_amounts; 
+  qu64 *amounts; 
+  size_t n_addrs_to; 
   qvec_t *addrs_to; 
 };
 
 typedef struct qtx_coinbase_t qtx_coinbase_t;
 struct qtx_coinbase_t { 
-  qu32 amount; 
+  qu64 amount; 
   qvec_t addr_to; 
 };
 
@@ -86,8 +86,8 @@ struct qtx_t {
   qvec_t public_key;
 
   qvec_t transaction_hash;
-  qu32 fee;
-  qu32 nonce;
+  qu64 fee;
+  qu64 nonce;
   union {
     qtx_transfer_t transfer;
     qtx_coinbase_t coinbase;
