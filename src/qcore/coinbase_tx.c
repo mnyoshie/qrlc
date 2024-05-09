@@ -37,6 +37,8 @@ qvec_t qrl_compute_qtx_coinbase_hash(const qtx_t *tx) {
 
   qvec_t transaction_hash = new_qvec(32);
   qrl_sha256(transaction_hash.data, transaction_blob, transaction_blob_len);
+  QRL_LOG("computed transaction hash\n");
+  qrl_dump(transaction_hash.data, transaction_hash.len);
 //  QRL_LOG("transaction_hash coinbase: \n");
 //  qrl_dump(transaction_hash.data, transaction_hash.len);
   free(transaction_blob);
@@ -44,5 +46,17 @@ qvec_t qrl_compute_qtx_coinbase_hash(const qtx_t *tx) {
 }
 
 int qrl_verify_qtx_coinbase(const qtx_t *tx) {
- return 0;
+  int ret = 0xff;
+  qvec_t tx_hash = qrl_compute_qtx_coinbase_hash(tx);
+  assert(tx_hash.len == 32);
+  assert(tx->transaction_hash.len == 32);
+  if (memcmp(tx_hash.data, tx->transaction_hash.data, 32)) {
+    QRL_LOG_EX(QRL_LOG_ERROR, "transaction hash mismatch\n");
+    goto exit;
+  }
+  ret ^= ret;
+
+exit:
+  free(tx_hash.data);
+  return ret;
 }

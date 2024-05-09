@@ -1,13 +1,12 @@
 /* qchain.c - qrlc chain manager
  *
- * Copyright (c) 2024 Minato Nakamura Yoshie
+ * Copyright (c) 2024 QRLC authors
  *
  * Released under MIT
  */
 
 // #define _FILE_OFFSET_BITS 64
 
-#include "chain.h"
 
 #include <inttypes.h>
 #include <json-c/json.h>
@@ -18,6 +17,7 @@
 #include "include/b64/cencode.h"
 #include "pb2types.h"
 #include "utils.h"
+#include "chain.h"
 
 #define DEFINE_COMMON_VARIABLES             \
   do {                                      \

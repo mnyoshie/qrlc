@@ -10,6 +10,11 @@
 CFLAGS += -O2 -std=gnu11 -fPIE -I./include -I../randomx
 CXXFLAGS += -O2 -std=gnu++11 -fPIE -I./include -I../ramdomx
 
+CFLAGS += $(EXTRACFLAGS)
+CXXFLAGS += $(EXTRACXXFLAGS)
+
+-include ../config.mk
+
 csources += $(directory)aesb.c
 csources += $(directory)src/memwipe.c
 csources += $(directory)rx-slow-hash.c
@@ -32,10 +37,6 @@ csources += $(directory)tree-hash.c
 
 testall = extra-blake extra-groestl extra-jh extra-skein fast slow-1 slow-2 slow tree
 
-feature-check = $(shell $(CXX) $(CXXFLAGS) tests/$(1).cpp -o tests/$(1)_test.bin $(tonull) && echo 1 || echo 0)
-check-cpu-feature = $(shell cat /proc/cpuinfo | grep $(1) > /dev/null && echo 1 || echo 0)
-check-compiler-feature = $(shell $(CC) $(2) -dM -E - < /dev/null  | grep $(1) > /dev/null && echo 1 || echo 0)
-
 ifeq ($(V),1)
   Q=
 else
@@ -43,21 +44,9 @@ else
   Q=@
 endif
 
-machine := $(shell uname -m)
-machine := $(shell echo $(machine) | sed -e 's/x86-64/x86_64/' -e 's/amd64/x86_64/' \
-					-e 's/arm64/aarch64/' -e 's/armv8-a/aarch64/' )
-
 #####################################
 #####################################
 
-
-ifeq ($(call feature-check,atomic),1)
-  CXXFLAGS += -DHAVE_CXX_ATOMICS
-endif
-
-ifeq ($(call feature-check,hwcap),1)
-  CXXFLAGS += -DHAVE_HWCAP
-endif
 
 ifeq ($(machine),x86_64)
   CXXFLAGS += -march=native
@@ -72,13 +61,13 @@ ifeq ($(machine),x86_64)
 #  endif
   
   # HAVE SSSE3 
-  ifeq ($(call check-compiler-feature,__SSSE3__,-mssse3),1)
+  ifeq ($(feature-ssse3),1)
   CXXFLAGS += -mssse3
   CFLAGS += -mssse3
   endif
   
   # HAVE AVX2
-  ifeq ($(call check-compiler-feature,__AVX2__,-mavx2),1)
+  ifeq ($(feature-avx2),1)
   CXXFLAGS += -mavx2
   CFLAGS += -mavx2
   endif

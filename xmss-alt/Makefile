@@ -2,6 +2,9 @@ CFLAGS = -Wall -g -O3 -Wextra -Wpedantic -D_FORTIFY_SOURCE=2 #-fsanitize=address
 LDFLAGS = -lcrypto
 #LDFLAGS += -fsanitize=address
 
+CFLAGS += $(EXTRACFLAGS)
+CXXFLAGS +=$( EXTRACXXFLAGS)
+
 csources = fips202.c
 csources += hash.c 
 csources += hash_address.c

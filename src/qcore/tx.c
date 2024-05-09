@@ -43,16 +43,16 @@ qvec_t qrl_compute_tx_hash(const qtx_t *tx) {
 }
 
 int qrl_verify_qtx(const qtx_t *tx) {
-  int ret = 1;
-  qvec_t tx_hash = qrl_compute_tx_hash(tx);
-  assert(tx_hash.data != NULL);
-  assert(tx_hash.len == 32);
-  assert(tx->transaction_hash.len == 32);
-  if (memcmp(tx_hash.data, tx->transaction_hash.data, 32)) {
-    QRL_LOG_EX(QRL_LOG_ERROR, "transaction hash mismatch\n");
-    goto exit;
-  }
-
+  int ret = 0xff;
+//  qvec_t tx_hash = qrl_compute_tx_hash(tx);
+//  assert(tx_hash.data != NULL);
+//  assert(tx_hash.len == 32);
+//  assert(tx->transaction_hash.len == 32);
+//  if (memcmp(tx_hash.data, tx->transaction_hash.data, 32)) {
+//    QRL_LOG_EX(QRL_LOG_ERROR, "transaction hash mismatch\n");
+//    goto exit;
+//  }
+//
 
   switch (tx->tx_type) {
     case QTX_COINBASE:
@@ -62,10 +62,9 @@ int qrl_verify_qtx(const qtx_t *tx) {
       ret = qrl_verify_qtx_transfer(tx);
       goto exit;
     default: assert(0);
-
   }
 
 exit:
-  free(tx_hash.data);
+  //free(tx_hash.data);
   return ret;
 }

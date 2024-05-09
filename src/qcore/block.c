@@ -86,17 +86,20 @@ qvec_t qrl_compute_hash_hdr(const qblock_hdr_t *block_hdr, const hfunc_ctx *hfun
 }
 
 int qrl_verify_qblock(const qblock_t *qblock, const hfunc_ctx *hfunc) {
-  int ret = 1, has_invalid = 0;
+  int ret = 0xff;
   qvec_t hash_hdr = qrl_compute_hash_hdr(&qblock->block_hdr, hfunc);
   assert(hash_hdr.data != NULL);
 
   if (memcmp(hash_hdr.data, qblock->block_hdr.hash_hdr.data, 32)) {
-      QRL_LOG_EX(QRL_LOG_ERROR, "header hash mismatched\n");
+      QRL_LOG_EX(QRL_LOG_ERROR, "hash header mismatched\n");
     goto exit;
   }
 
-  if (qblock->nb_txs == 0)
+  if (qblock->nb_txs == 0) {
+    QRL_LOG_EX(QRL_LOG_ERROR, "no transaction\n");
     goto exit;
+  }
+
   if (qblock->txs[0].tx_type != QTX_COINBASE)
     goto exit;
 
@@ -108,14 +111,18 @@ int qrl_verify_qblock(const qblock_t *qblock, const hfunc_ctx *hfunc) {
       QRL_LOG_EX(QRL_LOG_ERROR, "multiple coinbase transaction\n");
       goto exit;
     }
+  }
+
+  for (size_t i = 1; i < qblock->nb_txs; i++) {
     if (qrl_verify_qtx(&qblock->txs[i])) {
-      QRL_LOG_EX(QRL_LOG_ERROR, "invalid tx\n");
-      has_invalid = 1;
-      continue;
+      QRL_LOG_EX(QRL_LOG_ERROR, "invalid tx at index %zu\n", i);
+      /* do not waste precious time verifying other txs in an already invalid block */
+      goto exit;
     }
   }
 
+  ret ^= ret;
 exit:
   free(hash_hdr.data);
-  return has_invalid ? 1 : 0;
+  return ret;
 }

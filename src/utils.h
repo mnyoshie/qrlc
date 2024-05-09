@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "include/config.h"
 #include "include/types.h"
 #include "log.h"
 
@@ -38,6 +37,7 @@ static inline uint32_t qbswap_32(uint32_t n) {
   uint32_t d = (n & (uint32_t)0x000000ff) << (3 * 8);
   return a | b | c | d;
 }
+
 static inline uint64_t qbswap_64(uint64_t n) {
   uint64_t a = (n & (uint64_t)0xff00000000000000) >> (7 * 8);
   uint64_t b = (n & (uint64_t)0x00ff000000000000) >> (5 * 8);
@@ -154,18 +154,18 @@ struct inctr_t {
   size_t i;
 };
 
-static inline size_t pincrement(struct inctr_t *t, size_t s) {
+static inline size_t pincrement(struct inctr_t *const t, const size_t s) {
   return t->i += s;
 }
 
-static inline size_t incrementp(struct inctr_t *t, size_t s) {
+static inline size_t incrementp(struct inctr_t *const t, const size_t s) {
   size_t i = t->i;
   t->i += s;
   return i;
 }
 
-extern void qrl_dump_ex(int type, char *data, size_t len);
-extern void qrl_dump(void *data, size_t len);
+extern void qrl_dump_ex(const int type, const char *const data, const size_t len);
+extern void qrl_dump(const void *data, const size_t len);
 extern void qrl_printx(void *data, size_t len);
 // extern void *qrl_alloc_secure_page(void);
 

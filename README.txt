@@ -40,10 +40,6 @@ into .o objects and use a C++ compiler to link those objects.
 
 Parts of this source directory are written by the QRL/C contributors and others.
 
-Sources written by the QRL contributors are released under their License.
-
-Sources written by the QRLC contributors are released under MIT License.
-
 See the accompanying notice at every sources for it's author
 and license.
 

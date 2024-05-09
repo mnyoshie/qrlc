@@ -64,9 +64,9 @@ typedef enum qtx_type_t qtx_type_t;
 typedef struct qtx_transfer_t qtx_transfer_t;
 struct qtx_transfer_t { 
   qvec_t message_data;
-  size_t n_amounts; 
+  size_t nb_amounts; 
   qu64 *amounts; 
-  size_t n_addrs_to; 
+  size_t nb_addrs_to; 
   qvec_t *addrs_to; 
 };
 
@@ -107,5 +107,6 @@ struct qblock_t {
 extern qvec_t new_qvec(size_t size);
 extern void free_qblock(qblock_t *qblock);
 extern void print_qblock(qblock_t *qblock);
+extern const char *qtx_type2str(qtx_type_t tx_type);
 
 #endif

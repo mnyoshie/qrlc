@@ -1,18 +1,26 @@
 #include "utils.h"
+#include "inttypes.h"
 
-static void qrl_dump_decode_binary(char *data, int len) {
+static void dump_decode_binary(const char *const data, const size_t len) {
+  int space_padding = 50;
   char look_up[16] = {'0', '1', '2', '3', '4', '5', '6', '7',
                       '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
-  for (int i = 0; i < len; i++) {
+  for (size_t i = 0; i < len; i++) {
     putchar(look_up[(data[i] >> 4) & 0x0f]);
     putchar(look_up[data[i] & 0x0f]);
     putchar(' ');
-    if (i == 7) putchar(' ');
+    space_padding -= 3;
+    if (i == 7) {putchar(' '); space_padding--;}
   }
+  for (int i = 0; i < space_padding; i++)
+    putchar(' ');
 }
 
-static void qrl_dump_decode_ascii(char *data, int len) {
-  for (int i = 0; i < len; i++) {
+static void dump_decode_ascii(const char *const data, const size_t len) {
+  int space_padding = 16;
+  printf("|");
+  for (size_t i = 0; i < len; i++) {
+    space_padding--;
     if (data[i] < 0x20) {
       putchar('.');
     } else if (data[i] < 0x7f)
@@ -20,43 +28,30 @@ static void qrl_dump_decode_ascii(char *data, int len) {
     else
       putchar('.');
   }
+  for (int i = 0; i < space_padding; i++)
+    putchar(' ');
+  printf("|");
 }
 
-void qrl_dump_ex(int type, char *data, size_t len) {
+void qrl_dump_ex(const int type, const char *const data, const size_t len) {
   if (len == 0) return;
   if (!(type & qrl_log_level)) return;
+  size_t to_write = 16;
 
-  size_t cur = 0;
-
-  for (; cur < 16 * (len / 16); cur += 16) {
-    qrl_dump_decode_binary(data + cur, 16);
-    printf("| ");
-    qrl_dump_decode_ascii(data + cur, 16);
-    printf(" |");
+  for (const char *cur = data; cur != data + len; cur += to_write) {
+    if ((size_t)(cur + to_write) > (size_t)(data + len))
+      to_write = (size_t)((data + len) - cur);
+//    printf("cur %zu  to write %zu\n",cur, to_write);
+    assert(cur >= data);
+    printf("%08"PRIx32"  ", (uint32_t)(cur - data));
+    dump_decode_binary(cur, to_write);
+    dump_decode_ascii(cur, to_write);
     puts("");
   }
-  /* write the remaining */
-  if (len % 16) {
-    qrl_dump_decode_binary(data + cur, len % 16);
-    /* write the empty */
-    for (size_t i = 0; i < 16 - (len % 16); i++) {
-      printf("   ");
-      if (i == 7) putchar(' ');
-    }
-
-    printf("| ");
-    qrl_dump_decode_ascii(data + cur, len % 16);
-    for (size_t i = 0; i < 16 - (len % 16); i++) {
-      putchar(' ');
-    }
-    printf(" |");
-    puts("");
-    cur += len % 16;
-  }
-  assert(len == cur);
+//  assert(len == (size_t)(idata - data));
 }
 
-void qrl_dump(void *data, size_t len) { qrl_dump_ex(QRL_LOG_INFO, data, len); }
+void qrl_dump(const void *data, const size_t len) { qrl_dump_ex(QRL_LOG_INFO, data, len); }
 
 void qrl_printx(void *data, size_t len) {
   char *c = data;

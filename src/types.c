@@ -37,7 +37,7 @@ void del_qvec(qvec_t q){
   q.len = 0;
 }
 
-void *qrl_memcat(void *data1, size_t len1, void *data2, size_t len2) {
+void *qrl_memcatf(void *data1, size_t len1, void *data2, size_t len2) {
   char *ret = malloc(len1 + len2);
   assert(ret != NULL);
 
@@ -47,6 +47,14 @@ void *qrl_memcat(void *data1, size_t len1, void *data2, size_t len2) {
   free(data1);
   free(data2);
   return ret;
+}
+
+const char *qtx_type2str(qtx_type_t tx_type) {
+  switch (tx_type) {
+    case QTX_COINBASE: return "coinbase";
+    case QTX_TRANSFER: return "transfer";
+    default: return "unknown";
+  }
 }
 
 void print_qblock(qblock_t *qblock) {
@@ -69,7 +77,7 @@ void print_qblock(qblock_t *qblock) {
 //
 //  qu64 mining_nonce;
 //  qu64 extra_nonce;
-#define PRINT_FIELD_DATA(a, x) printf(a #x ": "); qrl_printx(qblock-> x .data, qblock-> x .len)
+#define PRINT_FIELD_DATA(a, x) printf(a #x ": (%zu bytes) ...\n", qblock-> x .len); qrl_dump(qblock-> x .data, qblock-> x .len)
 #define PRINT_FIELD_U32(a, x) printf(a #x ": %"PRIu32"\n", qblock-> x)
 #define PRINT_FIELD_U64(a, x) printf(a #x ": %"PRIu64"\n", qblock-> x)
   PRINT_FIELD_U64("", block_hdr.block_number);
@@ -82,8 +90,11 @@ void print_qblock(qblock_t *qblock) {
   PRINT_FIELD_DATA("", block_hdr.hash_hdr);
   PRINT_FIELD_DATA("", block_hdr.hash_phdr);
   PRINT_FIELD_DATA("", block_hdr.merkle_root);
+  printf("%zu transactions:\n", qblock->nb_txs);
   for (size_t i = 0; i < qblock->nb_txs; i++) {
-    PRINT_FIELD_U32("  ", txs[i].tx_type);
+    printf("  transaction #%zu:\n", i);
+    printf("  txs[i].tx_type: %"PRIu32" (%s)\n", qblock->txs[i].tx_type,
+        qtx_type2str(qblock->txs[i].tx_type));
     PRINT_FIELD_DATA("  ", txs[i].master_addr);
     PRINT_FIELD_DATA("  ", txs[i].signature);
     PRINT_FIELD_DATA("  ", txs[i].public_key);
@@ -119,11 +130,11 @@ void free_qblock(qblock_t *qblock) {
     free(qblock->txs[i].transaction_hash.data);
     switch (qblock->txs[i].tx_type) {
       case QTX_TRANSFER:
-        for (size_t t = 0; t < qblock->txs[i].transfer.n_addrs_to; t++)
+        for (size_t t = 0; t < qblock->txs[i].transfer.nb_addrs_to; t++)
           free(qblock->txs[i].transfer.addrs_to[t].data);
 
         free(qblock->txs[i].transfer.message_data.data);
-        assert(qblock->txs[i].transfer.n_addrs_to == qblock->txs[i].transfer.n_amounts);
+        assert(qblock->txs[i].transfer.nb_addrs_to == qblock->txs[i].transfer.nb_amounts);
         break;
 
       case QTX_COINBASE:

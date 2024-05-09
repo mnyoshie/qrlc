@@ -18,11 +18,15 @@ CFLAGS += -fpie
 CFLAGS += -I.
 CFLAGS += -I..
 CFLAGS += -fstack-protector
-CFLAGS += -fsanitize=address
+#CFLAGS += -fsanitize=address
 CFLAGS += -Wformat
 CFLAGS += -Wformat-security
+CFLAGS += -Wno-implicit-fallthrough
 CFLAGS += -Wall
 CFLAGS += -Wextra
+
+CFLAGS += $(EXTRACFLAGS)
+CXXFLAGS += $(EXTRACXXFLAGS)
 
 LDFLAGS = -L$(PREFIX)/lib
 LDFLAGS += -L../xmss-alt 
@@ -46,7 +50,9 @@ LDFLAGS += -lleveldb
 LDFLAGS += -lxmssf_qrl
 LDFLAGS += -lrandomx
 LDFLAGS += -lcryptonight
-LDFLAGS += -fsanitize=address
+#LDFLAGS += -fsanitize=address
+
+-include ../config.mk
 
 csources = log.c
 csources += hash.c
@@ -90,6 +96,18 @@ ifeq ($(machine),aarch64)
   CFLAGS += -march=armv8-a+crypto
 endif
 
+ifeq ($(machine-endian),little)
+  CFLAGS += -DQLITTLE_ENDIAN
+endif
+
+ifeq ($(machine-endian),big)
+  CFLAGS += -DQBIG_ENDIAN
+endif
+
+ifeq ($(feature-bswap),1)
+  CFLAGS += -DQHAVE_BSWAP
+endif
+
 objects = $(patsubst %.c,%.o,$(csources))
 
 all : libqrlc.a
@@ -106,16 +124,10 @@ libqrlc.a : $(objects)
 	$(Q)$(CC) -c $(CFLAGS) $< -o $@
 
 
-main : main.o libqrlc.a
+%.bin : %.o libqrlc.a
 	$(LD) $< -L. -lqrlc $(LDFLAGS) -o $@
 
-$(main) : $(main).o libqrlc.a
-	$(LD) $< -L. -lqrlc $(LDFLAGS) -o $@
+test: main.bin 
 
-ifeq ($(main),)
 clean:
-	rm $(objects) libqrlc.a || true
-else
-clean:
-	rm $(objects) libqrlc.a $(main) $(main).o || true
-endif
+	rm $(objects) libqrlc.a *.bin tests/*.bin || true
