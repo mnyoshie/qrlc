@@ -75,6 +75,7 @@ csources += qcore/block.c
 csources += qcore/tx.c
 csources += qcore/transfer_tx.c
 csources += qcore/coinbase_tx.c
+csources += qcore/message_tx.c
 
 ifeq ($(V),1)
   Q=

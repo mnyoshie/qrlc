@@ -17,6 +17,7 @@ extern qvec_t qrl_compute_qtx_transfer_hash(const qtx_t *tx);
 extern qvec_t qrl_compute_qtx_coinbase_hash(const qtx_t *tx);
 extern int qrl_verify_qtx_coinbase(const qtx_t *tx);
 extern int qrl_verify_qtx_transfer(const qtx_t *tx);
+extern int qrl_verify_qtx_message(const qtx_t *tx);
 
 qvec_t qrl_compute_tx_hash(const qtx_t *tx) {
   switch (tx->tx_type) {
@@ -60,6 +61,9 @@ int qrl_verify_qtx(const qtx_t *tx) {
       goto exit;                   
     case QTX_TRANSFER:    
       ret = qrl_verify_qtx_transfer(tx);
+      goto exit;
+    case QTX_MESSAGE:
+      ret = qrl_verify_qtx_message(tx);
       goto exit;
     default: assert(0);
   }

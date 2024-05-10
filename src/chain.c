@@ -70,7 +70,7 @@ qvec_t qrl_get_headerhash_by_number(qchain_t *chain, qu64 block_number) {
 
   char *value = NULL;
   size_t valuelen;
-  qvec_t v = {.data=NULL, .len=0};
+  qvec_t v = QVEC_NULL;
   char key[512] = {0};
   char *err = NULL;
 
@@ -192,13 +192,12 @@ int qrl_update_chain_height(qchain_t *chain, qu64 height) {
   int ret = 0;
   char *err = NULL;
 
-
   woptions = leveldb_writeoptions_create();
   assert(woptions != NULL);
   leveldb_put(chain->state, woptions, "blockheight", 11, (void*)&(qu64){QINT2BIG_64(height)}, sizeof(height), &err);
   if (err != NULL) {
     QRL_LOG_EX(QRL_LOG_ERROR,
-               "%s: leveldb: %s. failed to get blockheight\n",
+               "%s: leveldb: %s. failed to update chain height\n",
                chain->state_dir, err);
     ret = 1;
     goto exit;

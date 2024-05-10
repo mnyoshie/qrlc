@@ -8,32 +8,31 @@
 
 #include <assert.h>
 
-//extern qvec_t qrl_compute_tx_transfer_hash(const qtx_t *tx);
-
-qvec_t qrl_compute_qtx_coinbase_hash(const qtx_t *tx) {
+qvec_t qrl_compute_qtx_message_hash(const qtx_t *tx) {
   assert(tx->tx_type == QTX_COINBASE);
-  size_t transaction_blob_len = tx->master_addr.len + tx->coinbase.addr_to.len +
-                                sizeof(tx->nonce) + sizeof(tx->coinbase.amount);
+  size_t transaction_blob_len =
+    tx->master_addr.len +
+    sizeof(tx->fee) +
+    tx->message.message_hash.len +
+    tx->message.addr_to.len;
+                      
 
   char *transaction_blob = malloc(transaction_blob_len);
   assert(transaction_blob != NULL);
 
   struct inctr_t ctr = {0};
+
   size_t sincr = tx->master_addr.len;
-  memcpy(transaction_blob + incrementp(&ctr, sincr), tx->master_addr.data,
-         sincr);
+  memcpy(transaction_blob + incrementp(&ctr, sincr), tx->master_addr.data, sincr);
 
-  sincr = tx->coinbase.addr_to.len;
-  memcpy(transaction_blob + incrementp(&ctr, sincr), tx->coinbase.addr_to.data,
-         sincr);
+  sincr = sizeof(tx->fee);
+  memcpy(transaction_blob + incrementp(&ctr, sincr), &(qu64){QINT2BIG_64(tx->fee)}, sincr);
 
-  sincr = sizeof(tx->nonce);
-  memcpy(transaction_blob + incrementp(&ctr, sincr),
-         &(uint64_t){QINT2BIG_64(tx->nonce)}, sincr);
+  sincr = tx->message.message_hash.len;
+  memcpy(transaction_blob + incrementp(&ctr, sincr), tx->message.message_hash.data, sincr);
 
-  sincr = sizeof(tx->coinbase.amount);
-  memcpy(transaction_blob + incrementp(&ctr, sincr),
-         &(uint64_t){QINT2BIG_64(tx->coinbase.amount)}, sincr);
+  sincr = tx->message.addr_to.len;
+  memcpy(transaction_blob + incrementp(&ctr, sincr), tx->message.addr_to.data, sincr);
 
   qvec_t transaction_hash = new_qvec(32);
   qrl_sha256(transaction_hash.data, transaction_blob, transaction_blob_len);
@@ -43,9 +42,9 @@ qvec_t qrl_compute_qtx_coinbase_hash(const qtx_t *tx) {
   return transaction_hash;
 }
 
-int qrl_verify_qtx_coinbase(const qtx_t *tx) {
+int qrl_verify_qtx_message(qtx_t *tx) {
   int ret = 0xff;
-  qvec_t tx_hash = qrl_compute_qtx_coinbase_hash(tx);
+  qvec_t tx_hash = qrl_compute_qtx_message_hash(tx);
   assert(tx_hash.len == 32);
   assert(tx->transaction_hash.len == 32);
   if (memcmp(tx_hash.data, tx->transaction_hash.data, 32)) {

@@ -25,6 +25,7 @@ qvec_t *malloc_qvec(size_t size){
 }
 
 qvec_t new_qvec(size_t size){
+  assert(size != 0);
   qu8 *q = calloc(1, size);
   assert(q != NULL);
 
@@ -49,35 +50,35 @@ void *qrl_memcatf(void *data1, size_t len1, void *data2, size_t len2) {
   return ret;
 }
 
+qvec_t qrl_qveccpy(const qvec_t a) {
+  qvec_t v = new_qvec(a.len);
+  memcpy(v.data, a.data, a.len);
+  return v;
+}
+
+qvec_t qrl_qveccat(const qvec_t a, const qvec_t b) {
+  void *data = malloc(a.len + b.len);
+  assert(data != NULL);
+
+  memcpy(data, a.data, a.len);
+  memcpy(data + a.len, b.data, b.len);
+
+  // XXX: assert a.len + b.len dont overflow 
+  return (qvec_t){.data=data, .len=a.len + b.len};
+
+}
+
 const char *qtx_type2str(qtx_type_t tx_type) {
   switch (tx_type) {
     case QTX_COINBASE: return "coinbase";
     case QTX_TRANSFER: return "transfer";
+    case QTX_MESSAGE: return "message";
     default: return "unknown";
   }
 }
 
-void print_qblock(qblock_t *qblock) {
-//  qvec_t hash_hdr;
-//  qu64 block_number;
-//
-//  // unix since epoch jan 1, 1970
-//  qu64 timestamp; 
-//
-////  size_t pheader_hash_len;
-////  qu8 *pheader_hash;
-//  qvec_t hash_phdr;
-//
-//  qu64 reward_block;
-//  qu64 reward_fee;
-//
-//  qvec_t merkle_root;
-////  size_t merkle_root_len;
-////  qu8 *merkle_root;
-//
-//  qu64 mining_nonce;
-//  qu64 extra_nonce;
-#define PRINT_FIELD_DATA(a, x) printf(a #x ": (%zu bytes) ...\n", qblock-> x .len); qrl_dump(qblock-> x .data, qblock-> x .len)
+void print_qblock(qblock_t *qblock, int verbose) {
+#define PRINT_FIELD_DATA(a, x) do { printf(a #x ": (%zu bytes) ...\n", qblock-> x .len); if (verbose) qrl_dump(qblock-> x .data, qblock-> x .len); } while (0)
 #define PRINT_FIELD_U32(a, x) printf(a #x ": %"PRIu32"\n", qblock-> x)
 #define PRINT_FIELD_U64(a, x) printf(a #x ": %"PRIu64"\n", qblock-> x)
   PRINT_FIELD_U64("", block_hdr.block_number);
@@ -109,6 +110,10 @@ void print_qblock(qblock_t *qblock) {
         PRINT_FIELD_DATA("    ", txs[i].coinbase.addr_to);
         PRINT_FIELD_U64("    ", txs[i].coinbase.amount);
         break;
+      case QTX_MESSAGE:
+        PRINT_FIELD_DATA("    ", txs[i].message.message_hash);
+        PRINT_FIELD_DATA("    ", txs[i].message.addr_to);
+      break;
       default: QRL_LOG_EX(QRL_LOG_ERROR, "  transaction type %d\n",qblock->txs[i].tx_type);
     }
     puts("");
@@ -124,21 +129,24 @@ void free_qblock(qblock_t *qblock) {
   free(qblock->block_hdr.merkle_root.data);
   /**************TRANSACTIONS***************************/
   for (size_t i = 0; i < qblock->nb_txs; i++) {
-    free(qblock->txs[i].master_addr.data);
-    free(qblock->txs[i].public_key.data);
-    free(qblock->txs[i].signature.data);
-    free(qblock->txs[i].transaction_hash.data);
+    del_qvec(qblock->txs[i].master_addr);
+    del_qvec(qblock->txs[i].public_key);
+    del_qvec(qblock->txs[i].signature);
+    del_qvec(qblock->txs[i].transaction_hash);
     switch (qblock->txs[i].tx_type) {
       case QTX_TRANSFER:
         for (size_t t = 0; t < qblock->txs[i].transfer.nb_addrs_to; t++)
           free(qblock->txs[i].transfer.addrs_to[t].data);
 
-        free(qblock->txs[i].transfer.message_data.data);
+        del_qvec(qblock->txs[i].transfer.message_data);
         assert(qblock->txs[i].transfer.nb_addrs_to == qblock->txs[i].transfer.nb_amounts);
         break;
-
       case QTX_COINBASE:
-        free(qblock->txs[i].coinbase.addr_to.data);
+        del_qvec(qblock->txs[i].coinbase.addr_to);
+        break;
+      case QTX_MESSAGE:
+        del_qvec(qblock->txs[i].message.message_hash);
+        del_qvec(qblock->txs[i].message.addr_to);
         break;
       default: QRL_LOG_EX(QRL_LOG_ERROR, "unknown transaction type %d\n",qblock->txs[i].tx_type);  assert(0);
     }

@@ -76,6 +76,21 @@ struct qtx_coinbase_t {
   qvec_t addr_to; 
 };
 
+typedef struct qtx_message_t qtx_message_t;
+struct qtx_message_t { 
+  qvec_t message_hash; 
+  qvec_t addr_to; 
+};
+
+
+typedef struct qtx_transfer_token_t qtx_transfer_token_t;
+struct qtx_transfer_token_t { 
+  qvec_t token_txhash;
+  size_t n_addrs_to;
+  qvec_t *addrs_to;
+  size_t n_amounts;
+  qu64 *amounts;
+};
 
 typedef struct qtx_t qtx_t;
 struct qtx_t { 
@@ -91,6 +106,8 @@ struct qtx_t {
   union {
     qtx_transfer_t transfer;
     qtx_coinbase_t coinbase;
+    qtx_message_t message;
+    qtx_transfer_token_t transfer_token;
   };
 };
 
@@ -105,8 +122,11 @@ struct qblock_t {
 };
 
 extern qvec_t new_qvec(size_t size);
+extern void del_qvec(qvec_t q);
 extern void free_qblock(qblock_t *qblock);
-extern void print_qblock(qblock_t *qblock);
+extern void print_qblock(qblock_t *qblock, int v);
 extern const char *qtx_type2str(qtx_type_t tx_type);
+extern qvec_t qrl_qveccpy(const qvec_t a);
+extern qvec_t qrl_qveccat(const qvec_t a, const qvec_t b);
 
 #endif

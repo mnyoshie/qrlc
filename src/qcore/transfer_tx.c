@@ -107,8 +107,8 @@ qvec_t qrl_compute_qtx_transfer_hash(const qtx_t *tx) {
   qvec_t transaction_hash = new_qvec(32);
 
   qrl_sha256(transaction_hash.data, transaction_blob, transaction_blob_len);
-  QRL_LOG("computed transaction hash\n");
-  qrl_dump(transaction_hash.data, transaction_hash.len);
+//  QRL_LOG("computed transaction hash\n");
+//  qrl_dump(transaction_hash.data, transaction_hash.len);
 
   free(data_hash.data);
   free(transaction_blob);

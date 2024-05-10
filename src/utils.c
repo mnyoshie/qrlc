@@ -39,9 +39,10 @@ void qrl_dump_ex(const int type, const char *const data, const size_t len) {
   size_t to_write = 16;
 
   for (const char *cur = data; cur != data + len; cur += to_write) {
+    /* make sure we don't overflow */
     if ((size_t)(cur + to_write) > (size_t)(data + len))
       to_write = (size_t)((data + len) - cur);
-//    printf("cur %zu  to write %zu\n",cur, to_write);
+
     assert(cur >= data);
     printf("%08"PRIx32"  ", (uint32_t)(cur - data));
     dump_decode_binary(cur, to_write);
