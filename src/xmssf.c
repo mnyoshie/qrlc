@@ -37,6 +37,85 @@
 #define GET_AFB(x) ((x >> 4) & 0x0f)
 #define GET_P1B(x) ((x >> 0) & 0x0f)
 
+/* input: 67 bytes QRL public key
+ * output: 4 bytes verh
+ */
+qvec_t qrl_compute_public_address_verh(qvec_t pk) {
+  if (pk.len != 67) {
+    QRL_LOG_EX(QRL_LOG_ERROR, "invalid QRL public address length\n");
+    return QVEC_NULL;
+  }
+  uint8_t pk_hash[32] = {0};
+  qrl_sha256(pk_hash, pk.data, pk.len);
+ 
+  /* desc + desc_pk_hash */
+  uint8_t verh[35] = {0};
+  memcpy(verh, pk.data, 3);
+  memcpy(verh + 3, pk_hash, 32);
+ 
+  uint8_t verh_hash[32] = {0};
+  qrl_sha256(verh_hash, verh, 35);
+ 
+//  /* The actual QRL address format  */
+//  qvec_t qrl_addr = new_qvec(4);
+//  memcpy(qrl_addr.data, pk.data, 3);
+//  memcpy(qrl_addr.data + 3, pk_hash, 32);
+//  memcpy(qrl_addr.data + 3 + 32, verh_hash + 32 - 4, 4);
+  qvec_t verh_ret = new_qvec(4);
+  memcpy(verh_ret.data, verh_hash + 32 - 4, 4);
+//  printf("Q");
+  return verh_ret;
+
+}
+
+/* input: 67 bytes QRL public key
+ * output: 39 bytes QRL public address
+ */
+qvec_t qrl_compute_public_address(qvec_t pk) {
+  if (pk.len != 67) {
+    QRL_LOG_EX(QRL_LOG_ERROR, "invalid QRL public key length\n");
+    return QVEC_NULL;
+  }
+  uint8_t pk_hash[32] = {0};
+  qrl_sha256(pk_hash, pk.data, pk.len);
+ 
+  /* desc + desc_pk_hash */
+  uint8_t verh[35] = {0};
+  memcpy(verh, pk.data, 3);
+  memcpy(verh + 3, pk_hash, 32);
+ 
+  uint8_t verh_hash[32] = {0};
+  qrl_sha256(verh_hash, verh, 35);
+ 
+  /* The actual QRL address format  */
+  qvec_t qrl_addr = new_qvec(39);
+  memcpy(qrl_addr.data, pk.data, 3);
+  memcpy(qrl_addr.data + 3, pk_hash, 32);
+  memcpy(qrl_addr.data + 3 + 32, verh_hash + 32 - 4, 4);
+  return qrl_addr;
+}
+
+int qrl_verify_public_address(qvec_t pa, qvec_t pk) {
+  int ret = 0xff;
+  if (pk.len != 67) {
+    QRL_LOG_EX(QRL_LOG_ERROR, "invalid QRL public key length\n");
+    return 1;
+  }
+  if (pa.len != 39) {
+    QRL_LOG_EX(QRL_LOG_ERROR, "invalid QRL public address length\n");
+    return 1;
+  }
+  qvec_t pa_computed = qrl_compute_public_address(pk);
+  assert(pa_computed.len == 39);
+  if (!memcmp(pa_computed.data, pa.data, 39)) {
+    QRL_LOG_EX(QRL_LOG_ERROR, "invalid QRL public address/key\n");
+    goto exit;
+  }
+  ret ^= ret;
+exit:
+  del_qvec(pa_computed);
+  return ret;
+}
 /* QRL address descriptor layout DESC (24 bits). */
 /*------------------------------------------------.
 |  4 bits |  4 bits  | 4 bits |  4 bits  | 8 bits |
@@ -175,8 +254,8 @@ int qrl_gen_keypair(int addr_desc) {
     }
     puts(STRING_OK);
 
-    QRL_LOG("PK hexdump\n");
-    qrl_dump(pk, 64);
+//    QRL_LOG("PK hexdump\n");
+//    qrl_dump(pk, 64);
 
     /* desc + pk = desc_pk = ePK */
     uint8_t desc_pk[67] = {0};
@@ -184,12 +263,12 @@ int qrl_gen_keypair(int addr_desc) {
     desc_pk[1] = (addr_desc >> 8) & 0xff;
     desc_pk[2] = (addr_desc >> 0) & 0xff;
     memcpy(desc_pk + 3, pk, 64);
+    QRL_LOG("pk hexdump\n");
+    qrl_dump(desc_pk, 67);
 
     uint8_t desc_pk_hash[32] = {0};
     qrl_sha256(desc_pk_hash, desc_pk, 67);
 
-    QRL_LOG("qrl address hexdump SHA256(DESC+PK)\n");
-    qrl_dump(desc_pk_hash, 32);
 
     QRL_LOG("sk hexdump\n");
     qrl_dump(sk, 132);
@@ -204,7 +283,7 @@ int qrl_gen_keypair(int addr_desc) {
     uint8_t verh_hash[32] = {0};
     qrl_sha256(verh_hash, verh, 35);
 
-    QRL_LOG("QRL address ");
+    QRL_LOG("QRL public address ");
 
     /* The actual QRL address format  */
     uint8_t qrl_addr[40] = {0};

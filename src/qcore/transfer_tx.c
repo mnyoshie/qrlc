@@ -17,7 +17,7 @@ static qvec_t get_data_hash(const qtx_t *tx) {
   struct inctr_t ctr = {0};
   size_t sincr = 0;
   if (tx->transfer.nb_amounts != tx->transfer.nb_addrs_to) {
-    QRL_LOG_EX(QRL_LOG_ERROR, "malformed tx-> %d (n_addrs) != %d (n_ammounts)\n",
+    QRL_LOG_EX(QRL_LOG_ERROR, "malformed tx-> %zu (n_addrs) != %zu (n_ammounts)\n",
                tx->transfer.nb_addrs_to, tx->transfer.nb_amounts);
     return QVEC_NULL;
   }
@@ -80,16 +80,6 @@ qvec_t qrl_compute_qtx_transfer_hash(const qtx_t *tx) {
   size_t sincr = 0;
   qvec_t data_hash = get_data_hash(tx);
 
-//  QRL_LOG("data hash: ");
-//  qrl_printx(data_hash, 32);
-//  if (qrl_verify_sig(
-//          (qvec_t){.len = tx->public_key.len, .data = tx->public_key.data},  //
-//          (qvec_t){.len = 32, .data = data_hash},                          //
-//          (qvec_t){.len = tx->signature.len, .data = tx->signature.data})) {
-//    QRL_LOG_EX(QRL_LOG_ERROR, "invalid signature\n");
-//    //return QVEC_NULL;
-//  }
-
   /* transaction blob: data_hash + sig + epkey */
   size_t transaction_blob_len = data_hash.len + tx->signature.len + tx->public_key.len;
   uint8_t *transaction_blob = malloc(transaction_blob_len);
@@ -104,16 +94,16 @@ qvec_t qrl_compute_qtx_transfer_hash(const qtx_t *tx) {
 
   sincr = tx->public_key.len;
   memcpy(transaction_blob + incrementp(&ctr, sincr), tx->public_key.data, sincr);
-  qvec_t transaction_hash = new_qvec(32);
+  qvec_t tx_hash = new_qvec(32);
 
-  qrl_sha256(transaction_hash.data, transaction_blob, transaction_blob_len);
+  qrl_sha256(tx_hash.data, transaction_blob, transaction_blob_len);
 //  QRL_LOG("computed transaction hash\n");
-//  qrl_dump(transaction_hash.data, transaction_hash.len);
+//  qrl_dump(tx_hash.data, tx_hash.len);
 
   free(data_hash.data);
   free(transaction_blob);
 
-  return transaction_hash;
+  return tx_hash;
 }
 
 int qrl_verify_qtx_transfer(const qtx_t *tx) {
@@ -131,19 +121,22 @@ int qrl_verify_qtx_transfer(const qtx_t *tx) {
     QRL_LOG_EX(QRL_LOG_ERROR, "invalid signature\n");
     goto exit;
   }
-
  
   tx_hash = qrl_compute_qtx_transfer_hash(tx);
   assert(tx_hash.len == 32);
-  assert(tx->transaction_hash.len == 32);
-  if (memcmp(tx_hash.data, tx->transaction_hash.data, 32)) {
+  assert(tx->tx_hash.len == 32);
+  if (memcmp(tx_hash.data, tx->tx_hash.data, 32)) {
     QRL_LOG_EX(QRL_LOG_ERROR, "transaction hash mismatch\n");
+    goto exit;
+  }
+  if (qrl_verify_public_address(tx->master_addr, tx->public_key)) {
+    QRL_LOG_EX(QRL_LOG_ERROR, "invalid QRL public address\n");
     goto exit;
   }
 
   ret ^= ret;
 exit:
-  free(data_hash.data);
-  free(tx_hash.data);
+  del_qvec(data_hash);
+  del_qvec(tx_hash);
   return ret;
 }

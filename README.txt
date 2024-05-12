@@ -8,15 +8,17 @@ Requires:
 
 -lcrypto -lleveldb -ljson-c -lsnappy -lpthread
 
-Ubuntu: `sudo apt install lib{leveldb,json-c,ssl}-dev`
 
 Build dependencies: `libbost-dev`
 
-# Building
+# Building on Linux. Ubuntu 
 
-`make -j4`
+```
+sudo apt install lib{leveldb,json-c,ssl}-dev
+make -j4
+```
 
-# Building on msys2 (ucrt64)
+# Building on Windows. Msys2 (ucrt64)
 
 ```
 pacman -S mingw-w64-ucrt-x86_64-{leveldb,json-c,boost,openssl,gcc,make}
@@ -24,7 +26,18 @@ make -j4
 
 ```
 Note that ASan isn't supported on non LLVM/Clang based environent on msys2,
-so remove those `-fsanitize=address`.
+so remove those `-fsanitize=address` if it is been set.
+
+## Test
+
+This would retrieve valid blocks from the mainnet and feed it to qrlc for testing.
+
+```
+make -C src test
+```
+
+
+
 
 # Known building issues
 

@@ -2,6 +2,7 @@
 #include "log.h"
 #include "include/ansicolors.h"
 
+int qrl_log_level = ~0 & ~QRL_LOG_TRACE;
 void qrl_log_ex(int type, char *file, const char *func, int line,
                 const char *format, ...) {
   if (!(type & qrl_log_level)) return;

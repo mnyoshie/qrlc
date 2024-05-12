@@ -146,7 +146,7 @@ qblock_t *qrl_get_block_by_number(qchain_t *chain, qu64 block_number) {
   // qrl_dump(value, valuelen);
   //write(1, value, valuelen);
   /* deserialize Block */
-  qblock = qblock_unpack(&(qvec_t){.data = (void*)value, .len = valuelen});
+  qblock = unpack_qblock(&(qvec_t){.data = (void*)value, .len = valuelen});
   assert(qblock != NULL);
 
 exit:

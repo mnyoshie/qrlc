@@ -60,11 +60,13 @@ endef
 $(shell echo Configuring... may take a minute >&2)
 
 # XXX: test C compiler
+$(info checking for CC compiler)
 ifneq ($(call check-c-feature,sane),1)
   $(error What C compiler is even this? CC=$(CC))
 endif
 
 # XXX: test CXX compiler
+$(info checking for CXX compiler)
 ifneq ($(call check-cxx-feature,sane),1)
   $(error What CXX compiler is even this? CXX=$(CXX))
 endif

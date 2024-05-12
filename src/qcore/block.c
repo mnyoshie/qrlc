@@ -5,7 +5,7 @@
 #include "dev_config.h"
 
 #if 0
-/* FIXME: HACK: this computes the merkle root recursively. its 
+/* FIXME: HACK: this computes the merkle root recursively. it
  * may be prone to stackoverflow.
  */
 qvec_t compute_merkle_hash(qvec_t *vec, size_t nb_vec) {
@@ -101,9 +101,8 @@ qvec_t qrl_generate_mining_blob(const qblock_hdr_t *block_hdr) {
 
 }
 
-/* same as above but iterative */
 static inline qvec_t compute_merkle_hash_iterative(qvec_t *vec, size_t nb_vec) {
-  if (nb_vec == 0) assert(0);
+  if (nb_vec == 0) { assert(0);}
   if (nb_vec == 1)
     return qrl_qveccpy(*vec);
 
@@ -122,6 +121,7 @@ static inline qvec_t compute_merkle_hash_iterative(qvec_t *vec, size_t nb_vec) {
     nb_hashed = nb_vec / 2;
     if (nb_vec % 2) nb_hashed += 1;
 
+    /* concatenate and hash */
     for (size_t i = 0, c = 0; i < nb_vec / 2; i++, c += 2) {
       qvec_t catted = qrl_qveccat(vec[c], vec[c + 1]);
       qrl_sha256(hashed[i].data, catted.data, catted.len);
@@ -130,6 +130,9 @@ static inline qvec_t compute_merkle_hash_iterative(qvec_t *vec, size_t nb_vec) {
 
     if (nb_vec % 2) {
       free(hashed[nb_hashed - 1].data);
+      /* we can't just `memcpy(hashed[nb_hashed - 1].data, vec[nb_vec - 1].data, vec[nb_vec - 1].len)`
+       * since hashed[].data only have 32 bytes allocated from new_qvec(32).
+       */
       hashed[nb_hashed - 1] = qrl_qveccpy(vec[nb_vec - 1]);
     }
     vec = hashed;
@@ -154,12 +157,10 @@ qvec_t qrl_compute_merkle_root(qtx_t *txs, size_t nb_txs) {
 
   qvec_t *txvec = malloc(sizeof(*txvec)*nb_txs);
   for (size_t i = 0; i < nb_txs; i++) {
-    txvec[i] = qrl_qveccpy(txs[i].transaction_hash);
+    txvec[i] = txs[i].tx_hash;
   }
 
   merkle_root = compute_merkle_hash_iterative(txvec, nb_txs);
-  for (size_t i = 0; i < nb_txs; i++)
-    del_qvec(txvec[i]);
   free(txvec);
 
   return merkle_root;
@@ -168,7 +169,7 @@ qvec_t qrl_compute_merkle_root(qtx_t *txs, size_t nb_txs) {
 qvec_t qrl_compute_hash_hdr(const qblock_hdr_t *block_hdr, const hfunc_ctx *hfunc) {
   /* 0 + SHAKE128(block_number || timestamp || hash_phdr || reward_block || reward_fee, 58) */
   qvec_t blob = qrl_generate_mining_blob(block_hdr);
-  assert(blob.len = 76);
+  assert(blob.len == 76);
   qu8 mining_blob[76];
   /* copy on stack */
   memcpy(mining_blob, blob.data, 76);
@@ -215,12 +216,6 @@ int qrl_verify_qblock(const qblock_t *qblock, const hfunc_ctx *hfunc) {
     QRL_LOG_EX(QRL_LOG_ERROR, "hash header mismatched\n");
     goto exit;
   }
-
-  merkle_root = qrl_compute_merkle_root(qblock->txs, qblock->nb_txs);
-  if (memcmp(merkle_root.data, qblock->block_hdr.merkle_root.data, 32)) {
-    QRL_LOG_EX(QRL_LOG_ERROR, "merkle root mismatched\n");
-    goto exit;
-  }
 //  qrl_dump(merkle_root.data, merkle_root.len);
 
 
@@ -255,6 +250,12 @@ int qrl_verify_qblock(const qblock_t *qblock, const hfunc_ctx *hfunc) {
       /* do not waste precious time verifying other txs in an already invalid block */
       goto exit;
     }
+  }
+
+  merkle_root = qrl_compute_merkle_root(qblock->txs, qblock->nb_txs);
+  if (memcmp(merkle_root.data, qblock->block_hdr.merkle_root.data, 32)) {
+    QRL_LOG_EX(QRL_LOG_ERROR, "merkle root mismatched\n");
+    goto exit;
   }
 
   ret ^= ret;

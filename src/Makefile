@@ -18,7 +18,7 @@ CFLAGS += -fpie
 CFLAGS += -I.
 CFLAGS += -I..
 CFLAGS += -fstack-protector
-#CFLAGS += -fsanitize=address
+CFLAGS += -fsanitize=address
 CFLAGS += -Wformat
 CFLAGS += -Wformat-security
 CFLAGS += -Wno-implicit-fallthrough
@@ -50,7 +50,7 @@ LDFLAGS += -lleveldb
 LDFLAGS += -lxmssf_qrl
 LDFLAGS += -lrandomx
 LDFLAGS += -lcryptonight
-#LDFLAGS += -fsanitize=address
+LDFLAGS += -fsanitize=address
 
 -include ../config.mk
 
@@ -128,7 +128,18 @@ libqrlc.a : $(objects)
 %.bin : %.o libqrlc.a
 	$(LD) $< -L. -lqrlc $(LDFLAGS) -o $@
 
-test: main.bin 
+test: tests/eget_block_by_number_req.bin tests/dget_block_by_number_resp.bin tests/genkey.bin
+	@bash -c 'for i in 0 1 2 15 902375 90231; do \
+		echo "##############################################################################"; \
+		printf "##########################> \e[1;96mBLOCK %016x\e[0m <##########################\n" $$i; \
+		tests/eget_block_by_number_req.bin $$i | curl \
+		--http2-prior-knowledge \
+		-H "te: trailers" \
+		-H "content-type: application/grpc" \
+		--data-binary @- \
+		mainnet-1.automated.theqrl.org:19009/qrl.PublicAPI/GetBlockByNumber | tests/dget_block_by_number_resp.bin	; done'
+	@echo libqrlc: OK
+
 
 clean:
-	rm $(objects) libqrlc.a *.bin tests/*.bin || true
+	rm $(objects) libqrlc.a *.bin tests/*.bin tests/*.o || true

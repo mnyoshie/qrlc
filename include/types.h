@@ -18,24 +18,18 @@ struct qvec_t {
 typedef struct qblock_hdr_t qblock_hdr_t;
 struct qblock_hdr_t {
   // assumed to be 32
-//  size_t header_hash_len;
-//  qu8 *header_hash;
   qvec_t hash_hdr;
   qu64 block_number;
 
   // unix since epoch jan 1, 1970
   qu64 timestamp; 
 
-//  size_t pheader_hash_len;
-//  qu8 *pheader_hash;
   qvec_t hash_phdr;
 
   qu64 reward_block;
   qu64 reward_fee;
 
   qvec_t merkle_root;
-//  size_t merkle_root_len;
-//  qu8 *merkle_root;
 
   qu32 mining_nonce;
   qu64 extra_nonce;
@@ -100,7 +94,7 @@ struct qtx_t {
   qvec_t signature;
   qvec_t public_key;
 
-  qvec_t transaction_hash;
+  qvec_t tx_hash;
   qu64 fee;
   qu64 nonce;
   union {

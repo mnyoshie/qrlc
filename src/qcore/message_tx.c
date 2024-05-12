@@ -34,20 +34,21 @@ qvec_t qrl_compute_qtx_message_hash(const qtx_t *tx) {
   sincr = tx->message.addr_to.len;
   memcpy(transaction_blob + incrementp(&ctr, sincr), tx->message.addr_to.data, sincr);
 
-  qvec_t transaction_hash = new_qvec(32);
-  qrl_sha256(transaction_hash.data, transaction_blob, transaction_blob_len);
+  qvec_t tx_hash = new_qvec(32);
+  qrl_sha256(tx_hash.data, transaction_blob, transaction_blob_len);
 //  QRL_LOG("computed transaction hash\n");
-//  qrl_dump(transaction_hash.data, transaction_hash.len);
+//  qrl_dump(tx_hash.data, tx_hash.len);
   free(transaction_blob);
-  return transaction_hash;
+  return tx_hash;
 }
 
 int qrl_verify_qtx_message(qtx_t *tx) {
+  assert(tx->tx_type == QTX_MESSAGE);
   int ret = 0xff;
   qvec_t tx_hash = qrl_compute_qtx_message_hash(tx);
   assert(tx_hash.len == 32);
-  assert(tx->transaction_hash.len == 32);
-  if (memcmp(tx_hash.data, tx->transaction_hash.data, 32)) {
+  assert(tx->tx_hash.len == 32);
+  if (memcmp(tx_hash.data, tx->tx_hash.data, 32)) {
     QRL_LOG_EX(QRL_LOG_ERROR, "transaction hash mismatch\n");
     goto exit;
   }

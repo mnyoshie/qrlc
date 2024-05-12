@@ -18,10 +18,6 @@ struct hfunc_ctx {
       randomx_cache *cache;
       randomx_vm *machine;
     } randomx;
-    struct {
-      randomx_cache *cache;
-      randomx_vm *machine;
-    } cryptonight;
   };
   hfunc_func hfunc;
 //void (*hfunc)(struct hash_func , qvec_t digest, qvec_t msg);

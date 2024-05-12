@@ -15,6 +15,7 @@
 
 extern qvec_t qrl_compute_qtx_transfer_hash(const qtx_t *tx);
 extern qvec_t qrl_compute_qtx_coinbase_hash(const qtx_t *tx);
+extern qvec_t qrl_compute_qtx_message_hash(const qtx_t *tx);
 extern int qrl_verify_qtx_coinbase(const qtx_t *tx);
 extern int qrl_verify_qtx_transfer(const qtx_t *tx);
 extern int qrl_verify_qtx_message(const qtx_t *tx);
@@ -25,8 +26,9 @@ qvec_t qrl_compute_tx_hash(const qtx_t *tx) {
       return qrl_compute_qtx_coinbase_hash(tx);
     case QTX_TRANSFER:
       return qrl_compute_qtx_transfer_hash(tx);
-    case QTX_LATTICEPK:
     case QTX_MESSAGE:
+      return qrl_compute_qtx_message_hash(tx);
+    case QTX_LATTICEPK:
     case QTX_TOKEN:
     case QTX_TRANSFER_TOKEN:
     case QTX_SLAVE:

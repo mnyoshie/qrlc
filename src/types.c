@@ -99,7 +99,7 @@ void print_qblock(qblock_t *qblock, int verbose) {
     PRINT_FIELD_DATA("  ", txs[i].master_addr);
     PRINT_FIELD_DATA("  ", txs[i].signature);
     PRINT_FIELD_DATA("  ", txs[i].public_key);
-    PRINT_FIELD_DATA("  ", txs[i].transaction_hash);
+    PRINT_FIELD_DATA("  ", txs[i].tx_hash);
     PRINT_FIELD_U64("  ", txs[i].fee);
     PRINT_FIELD_U64("  ", txs[i].nonce);
     switch (qblock->txs[i].tx_type) {
@@ -132,7 +132,7 @@ void free_qblock(qblock_t *qblock) {
     del_qvec(qblock->txs[i].master_addr);
     del_qvec(qblock->txs[i].public_key);
     del_qvec(qblock->txs[i].signature);
-    del_qvec(qblock->txs[i].transaction_hash);
+    del_qvec(qblock->txs[i].tx_hash);
     switch (qblock->txs[i].tx_type) {
       case QTX_TRANSFER:
         for (size_t t = 0; t < qblock->txs[i].transfer.nb_addrs_to; t++)

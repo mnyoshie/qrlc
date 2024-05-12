@@ -52,7 +52,7 @@ void qrl_dump_ex(const int type, const char *const data, const size_t len) {
 //  assert(len == (size_t)(idata - data));
 }
 
-void qrl_dump(const void *data, const size_t len) { qrl_dump_ex(QRL_LOG_INFO, data, len); }
+void qrl_dump(const void *data, const size_t len) {qrl_dump_ex(QRL_LOG_INFO, data, len); }
 
 void qrl_printx(void *data, size_t len) {
   char *c = data;
