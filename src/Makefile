@@ -5,12 +5,11 @@
 
 #qrlc version draft
 
-#CC = clang
-
-#HACK: link the objects with additional C++ standard libs
+-include ../config.mk
+#HACK: To link the objects with additional C++ standard libs
 LD = $(CXX)
 
-CFLAGS = -O0
+CFLAGS = -O3
 CFLAGS += -ggdb3
 CFLAGS += -std=c99
 CFLAGS += -D_FORTIFY_SOURCE=2
@@ -29,7 +28,7 @@ CFLAGS += $(EXTRACFLAGS)
 CXXFLAGS += $(EXTRACXXFLAGS)
 
 LDFLAGS = -L$(PREFIX)/lib
-LDFLAGS += -L../xmss-alt 
+#LDFLAGS += -L../xmss-alt 
 LDFLAGS += -L../randomx
 LDFLAGS += -L../cryptonight
 
@@ -47,12 +46,11 @@ LDFLAGS += -ljson-c
 LDFLAGS += -lcrypto
 LDFLAGS += -lpthread
 LDFLAGS += -lleveldb
-LDFLAGS += -lxmssf_qrl
+#LDFLAGS += -lxmssf_qrl
 LDFLAGS += -lrandomx
 LDFLAGS += -lcryptonight
 LDFLAGS += -fsanitize=address
 
--include ../config.mk
 
 csources = log.c
 csources += hash.c
@@ -66,7 +64,7 @@ csources += dev_config.c
 
 csources += cdecode.c
 csources += cencode.c
-csources += xmssf.c
+csources += xmss.c
 csources += qrl.pb-c.c
 csources += protobuf-c.c
 #csources += rx-slow-hash.c
@@ -76,6 +74,7 @@ csources += qcore/tx.c
 csources += qcore/transfer_tx.c
 csources += qcore/coinbase_tx.c
 csources += qcore/message_tx.c
+csources += qcore/latticepk_tx.c
 
 ifeq ($(V),1)
   Q=
@@ -129,7 +128,7 @@ libqrlc.a : $(objects)
 	$(LD) $< -L. -lqrlc $(LDFLAGS) -o $@
 
 test: tests/eget_block_by_number_req.bin tests/dget_block_by_number_resp.bin tests/genkey.bin
-	@bash -c 'for i in 0 1 2 15 902375 90231; do \
+	@bash -c 'for i in 0 1 2 15 902375 90231 2999079; do \
 		echo "##############################################################################"; \
 		printf "##########################> \e[1;96mBLOCK %016x\e[0m <##########################\n" $$i; \
 		tests/eget_block_by_number_req.bin $$i | curl \

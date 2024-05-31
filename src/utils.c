@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "utils.h"
 #include "inttypes.h"
 
@@ -33,9 +34,9 @@ static void dump_decode_ascii(const char *const data, const size_t len) {
   printf("|");
 }
 
-void qrl_dump_ex(const int type, const char *const data, const size_t len) {
-  if (len == 0) return;
-  if (!(type & qrl_log_level)) return;
+void qrl_dump_ex(const int unused, const char *const data, const size_t len) {
+//  if (len == 0) return;
+//  if (!(type & qrl_log_level)) return;
   size_t to_write = 16;
 
   for (const char *cur = data; cur != data + len; cur += to_write) {
@@ -59,7 +60,18 @@ void qrl_printx(void *data, size_t len) {
   for (size_t i = 0; i < len; i++) printf("%02x", (qu8)c[i]);
   puts("");
 }
-//
+
+char *qrl_sprintx(void *data, size_t len) {
+  char *c = data;
+  char *buf = calloc(1, len*2 + 3);
+  assert(buf != NULL);
+  size_t i;
+  for (i = 0; i < len; i++) snprintf(buf + i*2, 2, "%02x", (qu8)c[i]);
+
+  buf[i] = '\n';
+  return buf;
+}
+
 // #ifdef MAP_NOCORE
 // #  define QRL_MAP_NOCORE MAP_NOCORE
 // #else
@@ -111,7 +123,7 @@ void qrl_printx(void *data, size_t len) {
 //  QRL_LOG_EX(QRL_LOG_TRACE, "freed %d bytes on %p\n", getpagesize(), mem);
 //}
 //
-// void *qrl_malloc(size_t s) {
+// void *qrl_qalloc(size_t s) {
 //  void *mem = malloc(s);
 //  if (mem == NULL) {
 //    QRL_LOG_EX(QRL_LOG_WARNING, "couldn't allocated %d bytes\n", s);

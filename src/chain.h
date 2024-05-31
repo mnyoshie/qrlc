@@ -22,9 +22,13 @@ struct qchain_t {
 
 extern qchain_t *qrl_open_chain(char *dir);
 extern void qrl_close_chain(qchain_t *chain);
-extern qblock_t *qrl_get_block_by_number(qchain_t *chain, qu64 block_number);
-extern qu64 qrl_get_chain_height(qchain_t *chain);
 
 extern void qrl_free_block(qblock_t *block);
+
+extern qblock_t *qrl_get_block_by_number(qchain_t *chain, qu64 block_number);
+extern qblock_t *qrl_get_block_by_headerhash(qchain_t *chain, qvec_t headerhash);
+
+extern qu64 qrl_get_chain_height(qchain_t *chain);
+
 
 #endif /* QCHAIN_H */

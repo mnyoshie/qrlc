@@ -1,10 +1,6 @@
 #ifndef QRL_LOG_H
 #define QRL_LOG_H
 
-#include <stdio.h>
-#include <stdarg.h>
-
-
 #define QRL_LOG_INFO     (1)
 
 #define QRL_LOG_WARNING  (1<<1)
@@ -23,18 +19,11 @@
  * If it produces errors, maybe turn QRL_LOG_EX and QRL_LOG into
  * a real function and put random valid values to __FILE__, __func__, __LINE__.
  * */
-#define QRL_LOG_EX(type, fmt, ...) qrl_log_ex(type, __FILE__, __func__, __LINE__, fmt, ##__VA_ARGS__)
+#define QRL_LOG_EX(type, ...) qrl_log_ex(type, __FILE__, __func__, __LINE__, __VA_ARGS__)
 
-#define QRL_LOG(msg, ...) QRL_LOG_EX(QRL_LOG_INFO, msg, ##__VA_ARGS__)
+#define QRL_LOG(...) QRL_LOG_EX(QRL_LOG_INFO, __VA_ARGS__)
 
+void qrl_log_ex(int type, char *file, const char *func, int line, const char *format, ...);
 
-#ifdef QRL_LOG_DECLARE
-#define QRL_LOG_EXTERN
-#else
-#define QRL_LOG_EXTERN extern
-#endif
-
-QRL_LOG_EXTERN void qrl_log_ex(int type, char *file, const char *func, int line, const char *format, ...);
-
-QRL_LOG_EXTERN int qrl_log_level; 
+extern int qrl_log_level; 
 #endif /* QRL_LOG_H */

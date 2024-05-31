@@ -6,10 +6,10 @@
 
 #randomx version 1.2.1
 
+-include ../config.mk
 CFLAGS += -O3 -std=gnu11 -fPIE
 CXXFLAGS += -O3 -std=gnu++11 -fPIE
 
--include ../config.mk
 
 CFLAGS += $(EXTRACFLAGS)
 CXXFLAGS += $(EXTRACXXFLAGS)

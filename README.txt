@@ -36,6 +36,10 @@ This would retrieve valid blocks from the mainnet and feed it to qrlc for testin
 make -C src test
 ```
 
+# Cross compiling
+
+
+
 
 
 

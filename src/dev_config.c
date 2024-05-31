@@ -22,21 +22,21 @@ qu64 qget_hardfork_height(qu64 i) {
    return 0;
 
   const qu64 hardfork_height[] = {
-    QRL_HARD_FORK_HEIGHT0,
-    QRL_HARD_FORK_HEIGHT1,
-    QRL_HARD_FORK_HEIGHT2
+    QHARD_FORK_HEIGHT0,
+    QHARD_FORK_HEIGHT1,
+    QHARD_FORK_HEIGHT2
   };
 
   return hardfork_height[i];
 }
 
-const qvec_t *qget_banned_address(qu64 i) {
+qvec_t qget_banned_address(qu64 i) {
   if (i > 1)
-    return NULL;
+    return QVEC_NULL;
 
   const qvec_t *banned_address = {
     &QRL_BANNED_ADDRESS1
   };
 
-  return banned_address + i;
+  return qrl_qveccpy(banned_address[i]);
 }

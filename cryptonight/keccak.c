@@ -93,13 +93,13 @@ void keccak(const uint8_t *in, size_t inlen, uint8_t *md, int mdlen)
     uint8_t temp[144];
     size_t i, rsiz, rsizw;
 
-    static_assert(HASH_DATA_AREA <= sizeof(temp), "Bad keccak preconditions");
+    static_assert(CRYPTONIGHT_HASH_DATA_AREA <= sizeof(temp), "Bad keccak preconditions");
     if (mdlen <= 0 || (mdlen > 100 && sizeof(st) != (size_t)mdlen))
     {
       local_abort("Bad keccak use");
     }
 
-    rsiz = sizeof(state_t) == mdlen ? HASH_DATA_AREA : 200 - 2 * mdlen;
+    rsiz = sizeof(state_t) == mdlen ? CRYPTONIGHT_HASH_DATA_AREA : 200 - 2 * mdlen;
     rsizw = rsiz / 8;
     
     memset(st, 0, sizeof(st));

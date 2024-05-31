@@ -117,7 +117,7 @@ qvec_t hfunc_randomx(const hfunc_ctx *ctx, const qvec_t msg) {
 /* cryptonight1 header hashing function */
 qvec_t hfunc_cryptonight1(const hfunc_ctx *ctx, const qvec_t msg) {
   /* HASH_SIZE defined in cryptonight/hash-ops.h */
-  assert(ctx->digest_len >= HASH_SIZE);
+  assert(ctx->digest_len >= CRYPTONIGHT_HASH_SIZE);
   qu8 *digest = malloc(ctx->digest_len);
   assert(digest != NULL);
   cn_slow_hash(msg.data, msg.len, (void*)digest, 1 /* variant */, 0 /* pre-hashed*/, 0 /* height */);

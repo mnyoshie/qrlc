@@ -1,4 +1,6 @@
-#define QRL_LOG_DECLARE
+#include <stdio.h>
+#include <stdarg.h>
+
 #include "log.h"
 #include "include/ansicolors.h"
 

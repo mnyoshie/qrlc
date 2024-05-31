@@ -1,76 +1,73 @@
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <assert.h>
 
 #include "log.h"
-#include "xmssf.h"
+#include "xmss.h"
 
-
-//#define QDESC_SIG_XMSS     (0 << 20)
-//
-//#define QDESC_HF_SHA256    (0 << 16)
-//#define QDESC_HF_SHAKE128  (1 << 16)
-//#define QDESC_HF_SHAKE256  (2 << 16)
-//
-//#define QDESC_AF_SHA256_2X (0 << 8)
-//
-//#define QDESC_SET_P1(x)  ((x&0x0f) << 4)
-//#define QDESC_SET_P2(x)  ((x&0x0f) << 0)
+#ifdef NDEBUG
+#error "Dont turn on NO DEBUG!"
+#endif
 
 int main() {
+  int err = 0;
   qrl_log_level = ~0 & ~QRL_LOG_TRACE;
-  qrl_gen_keypair(
-      QDESC_SIG_XMSS |
-      QDESC_HF_SHA256 |
-      QDESC_AF_SHA256_2X |
-      QDESC_SET_P1(4) |
-      QDESC_SET_P2(0)
+  uint8_t seed_c1[] = {0x00, 0x04, 0x00, 0x91, 0xa2, 0x44, 0x64, 0x5d, 0x1c,
+                       0x16, 0xda, 0x90, 0xe9, 0x36, 0x3e, 0x71, 0xf8, 0x42,
+                       0x04, 0x8f, 0xfa, 0x9b, 0xf6, 0x9a, 0x8b, 0x1a, 0xea,
+                       0xe3, 0x6f, 0x6d, 0xcd, 0xa8, 0xab, 0xfa, 0x8e, 0xc3,
+                       0x1e, 0x3a, 0xd5, 0xee, 0x7e, 0xe6, 0xe3, 0x8a, 0xf7,
+                       0xae, 0x95, 0xd4, 0xcc, 0x41, 0x36};
+
+  uint8_t seed_c2[] = {0x01, 0x04, 0x00, 0x5c, 0x47, 0x80, 0x64, 0x50, 0x1c,
+                       0x16, 0xaa, 0x90, 0x9c, 0x36, 0x30, 0x71, 0xf8, 0x42,
+                       0xf4, 0x8f, 0xfa, 0xab, 0xf6, 0xf6, 0x8b, 0x1a, 0xea,
+                       0xf3, 0x60, 0x7c, 0xde, 0xd8, 0x8b, 0xd6, 0x8e, 0xc3,
+                       0x1e, 0xaf, 0x35, 0xee, 0x7e, 0xe6, 0xe3, 0xca, 0xff,
+                       0xae, 0x95, 0xde, 0xcc, 0x1d, 0xa8};
+
+  uint8_t pub_caddr1[] = {0x00, 0x04, 0x00, 0x73, 0x58, 0xf3, 0xe1, 0x67,
+                          0x3f, 0x46, 0x45, 0x0c, 0xa7, 0x41, 0x68, 0x0a,
+                          0x86, 0x07, 0x54, 0xc5, 0xe4, 0xca, 0x63, 0x6b,
+                          0x45, 0xf6, 0xd5, 0xd5, 0xb4, 0xb0, 0x2e, 0xd2,
+                          0x4a, 0xb3, 0xd0, 0x56, 0xb2, 0xc1, 0x7b};
+
+  uint8_t pub_caddr2[] = {0x01, 0x04, 0x00, 0x7a, 0xde, 0x30, 0xd5, 0x8b,
+                          0x90, 0x8c, 0x08, 0x55, 0xf0, 0xa0, 0xe4, 0x5d,
+                          0x50, 0xc7, 0xad, 0x0b, 0xc8, 0xa8, 0xd6, 0xe9,
+                          0x3f, 0xd5, 0x3f, 0xa2, 0x41, 0x21, 0x53, 0x6e,
+                          0xb4, 0x95, 0x6a, 0xc6, 0xe4, 0xb4, 0xe2};
+
+  qvec_t seed1 = {.data = (void*)seed_c1, .len = 51};
+  qvec_t seed2 = {.data = (void*)seed_c2, .len = 51};
+
+  qvec_t pub_key1 = xmss_gen_pubkey(seed1);
+  qvec_t pub_key2 = xmss_gen_pubkey(seed2);
+
+  qvec_t pub_addr1 = xmss_pubkey_to_pubaddr(pub_key1);
+  qvec_t pub_addr2 = xmss_pubkey_to_pubaddr(pub_key2);
+
+  assert(pub_addr1.len == sizeof(pub_caddr1));
+  assert(pub_addr2.len == sizeof(pub_caddr2));
+
+#define SET_ERR_IF(x, s)  \
+  do {                    \
+    if (x) {              \
+      fprintf(stderr, s); \
+      err = 1;            \
+    }                     \
+  } while (0)
+
+  SET_ERR_IF(memcmp(pub_addr1.data, pub_caddr1, sizeof(pub_caddr1)), \
+      "test 1 failed"
   );
-  qrl_gen_keypair(
-      QDESC_SIG_XMSS |
-      QDESC_HF_SHAKE128 |
-      QDESC_AF_SHA256_2X |
-      QDESC_SET_P1(4) |
-      QDESC_SET_P2(0)
-  );
-  qrl_gen_keypair(
-      QDESC_SIG_XMSS |
-      QDESC_HF_SHAKE256 |
-      QDESC_AF_SHA256_2X |
-      QDESC_SET_P1(4) |
-      QDESC_SET_P2(0)
+  SET_ERR_IF(memcmp(pub_addr2.data, pub_caddr2, sizeof(pub_caddr2)), \
+      "test 2 failed"
   );
 
-  qrl_gen_keypair(
-      QDESC_SIG_XMSS |
-      QDESC_HF_SHA256 |
-      QDESC_AF_SHA256_2X |
-      QDESC_SET_P1(7) |
-      QDESC_SET_P2(0)
-  );
-  qrl_gen_keypair(
-      QDESC_SIG_XMSS |
-      QDESC_HF_SHAKE128 |
-      QDESC_AF_SHA256_2X |
-      QDESC_SET_P1(7) |
-      QDESC_SET_P2(0)
-  );
-  qrl_gen_keypair(
-      QDESC_SIG_XMSS |
-      QDESC_HF_SHAKE256 |
-      QDESC_AF_SHA256_2X |
-      QDESC_SET_P1(7) |
-      QDESC_SET_P2(0)
-  );
-
-  qrl_gen_keypair(
-      QDESC_SIG_XMSS |
-      QDESC_HF_SHAKE256 |
-      QDESC_AF_SHA256_2X |
-      QDESC_SET_P1(15) |
-      QDESC_SET_P2(0)
-  );
-
+  if (err) {
+    abort();
+  }
   return 0;
 }

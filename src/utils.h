@@ -160,13 +160,14 @@ static inline size_t pincrement(struct inctr_t *const t, const size_t s) {
 
 static inline size_t incrementp(struct inctr_t *const t, const size_t s) {
   size_t i = t->i;
-  t->i += s;
-  return i;
+  //t->i += s;
+  return (t->i += s, i);
 }
 
 extern void qrl_dump_ex(const int type, const char *const data, const size_t len);
 extern void qrl_dump(const void *data, const size_t len);
 extern void qrl_printx(void *data, size_t len);
+extern char *qrl_sprintx(void *data, size_t len);
 // extern void *qrl_alloc_secure_page(void);
 
 #endif /* QUTILS_H */

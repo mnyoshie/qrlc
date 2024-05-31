@@ -24,7 +24,7 @@ qvec_t *malloc_qvec(size_t size){
   return q;
 }
 
-qvec_t new_qvec(size_t size){
+qvec_t qrl_qvecmalloc(size_t size){
   assert(size != 0);
   qu8 *q = calloc(1, size);
   assert(q != NULL);
@@ -33,7 +33,7 @@ qvec_t new_qvec(size_t size){
 }
 
 /* delete qvec */
-void del_qvec(qvec_t q){
+void qrl_qvecfree(qvec_t q){
   free(q.data);
   q.len = 0;
 }
@@ -51,7 +51,7 @@ void *qrl_memcatf(void *data1, size_t len1, void *data2, size_t len2) {
 }
 
 qvec_t qrl_qveccpy(const qvec_t a) {
-  qvec_t v = new_qvec(a.len);
+  qvec_t v = qrl_qvecmalloc(a.len);
   memcpy(v.data, a.data, a.len);
   return v;
 }
@@ -68,11 +68,16 @@ qvec_t qrl_qveccat(const qvec_t a, const qvec_t b) {
 
 }
 
+void qrl_qvecdump(const qvec_t v){
+  qrl_dump((void *)v.data, v.len); 
+}
+
 const char *qtx_type2str(qtx_type_t tx_type) {
   switch (tx_type) {
     case QTX_COINBASE: return "coinbase";
     case QTX_TRANSFER: return "transfer";
     case QTX_MESSAGE: return "message";
+    case QTX_LATTICEPK: return "latticepk";
     default: return "unknown";
   }
 }
@@ -129,24 +134,31 @@ void free_qblock(qblock_t *qblock) {
   free(qblock->block_hdr.merkle_root.data);
   /**************TRANSACTIONS***************************/
   for (size_t i = 0; i < qblock->nb_txs; i++) {
-    del_qvec(qblock->txs[i].master_addr);
-    del_qvec(qblock->txs[i].public_key);
-    del_qvec(qblock->txs[i].signature);
-    del_qvec(qblock->txs[i].tx_hash);
+    qrl_qvecfree(qblock->txs[i].master_addr);
+    qrl_qvecfree(qblock->txs[i].public_key);
+    qrl_qvecfree(qblock->txs[i].signature);
+    qrl_qvecfree(qblock->txs[i].tx_hash);
     switch (qblock->txs[i].tx_type) {
       case QTX_TRANSFER:
-        for (size_t t = 0; t < qblock->txs[i].transfer.nb_addrs_to; t++)
-          free(qblock->txs[i].transfer.addrs_to[t].data);
+        for (size_t t = 0; t < qblock->txs[i].transfer.nb_transfer_to; t++)
+          qrl_qvecfree(qblock->txs[i].transfer.addrs_to[t]);
 
-        del_qvec(qblock->txs[i].transfer.message_data);
-        assert(qblock->txs[i].transfer.nb_addrs_to == qblock->txs[i].transfer.nb_amounts);
+        qrl_qvecfree(qblock->txs[i].transfer.message_data);
         break;
       case QTX_COINBASE:
-        del_qvec(qblock->txs[i].coinbase.addr_to);
+        qrl_qvecfree(qblock->txs[i].coinbase.addr_to);
         break;
       case QTX_MESSAGE:
-        del_qvec(qblock->txs[i].message.message_hash);
-        del_qvec(qblock->txs[i].message.addr_to);
+        qrl_qvecfree(qblock->txs[i].message.message_hash);
+        qrl_qvecfree(qblock->txs[i].message.addr_to);
+        break;
+      case QTX_LATTICEPK:
+        qrl_qvecfree(qblock->txs[i].latticepk.pk1);
+        qrl_qvecfree(qblock->txs[i].latticepk.pk2);
+        qrl_qvecfree(qblock->txs[i].latticepk.pk3);
+        break;
+      case QTX_UNKNOWN:
+        QRL_LOG_EX(QRL_LOG_WARNING, "unknown transaction type %d\n",qblock->txs[i].tx_type); 
         break;
       default: QRL_LOG_EX(QRL_LOG_ERROR, "unknown transaction type %d\n",qblock->txs[i].tx_type);  assert(0);
     }

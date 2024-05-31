@@ -35,7 +35,7 @@ qvec_t qrl_compute_qtx_coinbase_hash(const qtx_t *tx) {
   memcpy(transaction_blob + incrementp(&ctr, sincr),
          &(uint64_t){QINT2BIG_64(tx->coinbase.amount)}, sincr);
 
-  qvec_t tx_hash = new_qvec(32);
+  qvec_t tx_hash = qrl_qvecmalloc(32);
   qrl_sha256(tx_hash.data, transaction_blob, transaction_blob_len);
 //  QRL_LOG("computed transaction hash\n");
 //  qrl_dump(tx_hash.data, tx_hash.len);

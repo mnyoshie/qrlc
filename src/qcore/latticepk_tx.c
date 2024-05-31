@@ -9,12 +9,13 @@
 #include <assert.h>
 
 static qvec_t get_data_hash(const qtx_t *tx) {
-  assert(tx->tx_type == QTX_MESSAGE);
+  assert(tx->tx_type == QTX_LATTICEPK);
   size_t data_blob_len =
     tx->master_addr.len +
     sizeof(tx->fee) +
-    tx->message.message_hash.len +
-    tx->message.addr_to.len;
+    tx->latticepk.pk1.len +
+    tx->latticepk.pk2.len +
+    tx->latticepk.pk3.len;
                       
 
   char *data_blob = malloc(data_blob_len);
@@ -28,11 +29,14 @@ static qvec_t get_data_hash(const qtx_t *tx) {
   sincr = sizeof(tx->fee);
   memcpy(data_blob + incrementp(&ctr, sincr), &(qu64){QINT2BIG_64(tx->fee)}, sincr);
 
-  sincr = tx->message.message_hash.len;
-  memcpy(data_blob + incrementp(&ctr, sincr), tx->message.message_hash.data, sincr);
+  sincr = tx->latticepk.pk1.len;
+  memcpy(data_blob + incrementp(&ctr, sincr), tx->latticepk.pk1.data, sincr);
 
-  sincr = tx->message.addr_to.len;
-  memcpy(data_blob + incrementp(&ctr, sincr), tx->message.addr_to.data, sincr);
+  sincr = tx->latticepk.pk2.len;
+  memcpy(data_blob + incrementp(&ctr, sincr), tx->latticepk.pk2.data, sincr);
+
+  sincr = tx->latticepk.pk3.len;
+  memcpy(data_blob + incrementp(&ctr, sincr), tx->latticepk.pk3.data, sincr);
 
   qvec_t data_hash = qrl_qvecmalloc(32);
   qrl_sha256(data_hash.data, data_blob, data_blob_len);
@@ -41,8 +45,8 @@ static qvec_t get_data_hash(const qtx_t *tx) {
   return data_hash;
 }
 
-qvec_t qrl_compute_qtx_message_hash(const qtx_t *tx) {
-  assert(tx->tx_type == QTX_MESSAGE);
+qvec_t qrl_compute_qtx_latticepk_hash(const qtx_t *tx) {
+  assert(tx->tx_type == QTX_TRANSFER);
   struct inctr_t ctr = {0};
   size_t sincr = 0;
   qvec_t data_hash = get_data_hash(tx);
@@ -64,6 +68,8 @@ qvec_t qrl_compute_qtx_message_hash(const qtx_t *tx) {
   qvec_t tx_hash = qrl_qvecmalloc(32);
 
   qrl_sha256(tx_hash.data, transaction_blob, transaction_blob_len);
+//  QRL_LOG("computed transaction hash\n");
+//  qrl_dump(tx_hash.data, tx_hash.len);
 
   free(data_hash.data);
   free(transaction_blob);
@@ -71,31 +77,16 @@ qvec_t qrl_compute_qtx_message_hash(const qtx_t *tx) {
   return tx_hash;
 }
 
-int qrl_verify_qtx_message(qtx_t *tx) {
-  assert(tx->tx_type == QTX_MESSAGE);
+int qrl_verify_qtx_latticepk(qtx_t *tx) {
+  assert(tx->tx_type == QTX_LATTICEPK);
   int ret = 0xff;
-  qvec_t tx_hash = qrl_compute_qtx_message_hash(tx);
+  qvec_t tx_hash = qrl_compute_qtx_latticepk_hash(tx);
   assert(tx_hash.len == 32);
   assert(tx->tx_hash.len == 32);
-#define EXITIF(x, fmt, ...)                           \
-  do {                                                \
-    if (x) {                                          \
-      QRL_LOG_EX(QRL_LOG_ERROR, #x ": " __VA_ARGS__); \
-      goto exit;                                      \
-    }                                                 \
-  } while (0)
-
-  EXITIF(memcmp(tx_hash.data, tx->tx_hash.data, 32), "transaction hash mismatch\n");
-  EXITIF(tx->message.message_hash.len > 80, "message transaction exceeds 80 bytes\n");
-//if (memcmp(tx_hash.data, tx->tx_hash.data, 32)) {
-//    QRL_LOG_EX(QRL_LOG_ERROR, "transaction hash mismatch\n");
-//    goto exit;
-//  }
-//  if (tx->message.len > 80) {
-//    QRL_LOG_EX(QRL_LOG_ERROR, "message tran\n");
-//    goto exit;
-//  }
-#undef EXITIF
+  if (memcmp(tx_hash.data, tx->tx_hash.data, 32)) {
+    QRL_LOG_EX(QRL_LOG_ERROR, "transaction hash mismatch\n");
+    goto exit;
+  }
   ret ^= ret;
 
 exit:

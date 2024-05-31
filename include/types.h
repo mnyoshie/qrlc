@@ -58,9 +58,8 @@ typedef enum qtx_type_t qtx_type_t;
 typedef struct qtx_transfer_t qtx_transfer_t;
 struct qtx_transfer_t { 
   qvec_t message_data;
-  size_t nb_amounts; 
+  size_t nb_transfer_to;
   qu64 *amounts; 
-  size_t nb_addrs_to; 
   qvec_t *addrs_to; 
 };
 
@@ -76,13 +75,21 @@ struct qtx_message_t {
   qvec_t addr_to; 
 };
 
+typedef struct qtx_lattice_t qtx_lattice_t;
+struct qtx_lattice_t { 
+  /* kyber_pk */
+  qvec_t pk1;
+  /* dilithium_pk */
+  qvec_t pk2;
+  /* ecdsa_pk */
+  qvec_t pk3;
+};
 
 typedef struct qtx_transfer_token_t qtx_transfer_token_t;
 struct qtx_transfer_token_t { 
   qvec_t token_txhash;
-  size_t n_addrs_to;
+  size_t nb_transfer_to;
   qvec_t *addrs_to;
-  size_t n_amounts;
   qu64 *amounts;
 };
 
@@ -101,6 +108,7 @@ struct qtx_t {
     qtx_transfer_t transfer;
     qtx_coinbase_t coinbase;
     qtx_message_t message;
+    qtx_lattice_t latticepk;
     qtx_transfer_token_t transfer_token;
   };
 };
@@ -115,12 +123,15 @@ struct qblock_t {
   //qgenesis_balance_t genesis_balance;
 };
 
-extern qvec_t new_qvec(size_t size);
-extern void del_qvec(qvec_t q);
+extern qvec_t qrl_qvecmalloc(size_t size);
+extern void qrl_qvecfree(qvec_t q);
+extern qvec_t qrl_qveccpy(const qvec_t a);
+extern qvec_t qrl_qveccat(const qvec_t a, const qvec_t b);
+extern void qrl_qvecdump(const qvec_t v);
+
 extern void free_qblock(qblock_t *qblock);
 extern void print_qblock(qblock_t *qblock, int v);
 extern const char *qtx_type2str(qtx_type_t tx_type);
-extern qvec_t qrl_qveccpy(const qvec_t a);
-extern qvec_t qrl_qveccat(const qvec_t a, const qvec_t b);
+
 
 #endif

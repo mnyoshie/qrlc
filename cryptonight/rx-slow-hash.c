@@ -51,7 +51,7 @@
 
 typedef struct rx_state {
   CTHR_MUTEX_TYPE rs_mutex;
-  char rs_hash[HASH_SIZE];
+  char rs_hash[CRYPTONIGHT_HASH_SIZE];
   uint64_t  rs_height;
   randomx_cache *rs_cache;
 } rx_state;
@@ -245,7 +245,7 @@ void rx_slow_hash(const uint64_t mainheight, const uint64_t seedheight, const ch
 
   /* if alt block but with same seed as mainchain, no need for alt cache */
   if (is_alt) {
-    if (s_height == seedheight && !memcmp(rx_s[toggle].rs_hash, seedhash, HASH_SIZE))
+    if (s_height == seedheight && !memcmp(rx_s[toggle].rs_hash, seedhash, CRYPTONIGHT_HASH_SIZE))
       is_alt = 0;
   } else {
   /* RPC could request an earlier block on mainchain */
@@ -276,11 +276,11 @@ void rx_slow_hash(const uint64_t mainheight, const uint64_t seedheight, const ch
         local_abort("Couldn't allocate RandomX cache");
     }
   }
-  if (rx_sp->rs_height != seedheight || rx_sp->rs_cache == NULL || memcmp(seedhash, rx_sp->rs_hash, HASH_SIZE)) {
-    randomx_init_cache(cache, seedhash, HASH_SIZE);
+  if (rx_sp->rs_height != seedheight || rx_sp->rs_cache == NULL || memcmp(seedhash, rx_sp->rs_hash, CRYPTONIGHT_HASH_SIZE)) {
+    randomx_init_cache(cache, seedhash, CRYPTONIGHT_HASH_SIZE);
     rx_sp->rs_cache = cache;
     rx_sp->rs_height = seedheight;
-    memcpy(rx_sp->rs_hash, seedhash, HASH_SIZE);
+    memcpy(rx_sp->rs_hash, seedhash, CRYPTONIGHT_HASH_SIZE);
   }
   if (rx_vm == NULL) {
     if ((flags & RANDOMX_FLAG_JIT) && !miners) {

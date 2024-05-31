@@ -63,6 +63,12 @@ void qrl_close_chain(qchain_t *chain) {
   free(chain);
 }
 
+
+
+/////////
+
+
+
 qvec_t qrl_get_headerhash_by_number(qchain_t *chain, qu64 block_number) {
   leveldb_readoptions_t *roptions;
   struct json_object *jobj, *headerhash;
@@ -71,15 +77,17 @@ qvec_t qrl_get_headerhash_by_number(qchain_t *chain, qu64 block_number) {
   char *value = NULL;
   size_t valuelen;
   qvec_t v = QVEC_NULL;
-  char key[512] = {0};
+  char key[32] = {0};
+  int keylen = 0;
   char *err = NULL;
 
-  snprintf(key, 511, "%" PRIu64, block_number);
+  keylen = snprintf(key, 31, "%" PRIu64, block_number);
+  assert(keylen > 0);
 
   roptions = leveldb_readoptions_create();
   assert(roptions != NULL);
 
-  value = leveldb_get(chain->state, roptions, key, strlen(key), &valuelen, &err);
+  value = leveldb_get(chain->state, roptions, key, (size_t)keylen, &valuelen, &err);
 
   if (err != NULL) {
     QRL_LOG_EX(QRL_LOG_ERROR,
@@ -103,7 +111,6 @@ qvec_t qrl_get_headerhash_by_number(qchain_t *chain, qu64 block_number) {
   headerhash = json_object_object_get(jobj, "headerhash");
 
   const char *str_hh = json_object_get_string(headerhash);
-  //?puts(str_hh);
 
   v = qrl_decode_base64(str_hh);  // XXX
   // qrl_dump(v.data, v.len);
@@ -157,6 +164,51 @@ exit:
 
   return qblock;
 }
+
+
+
+/////////
+
+
+
+qblock_t *qrl_get_block_by_headerhash(qchain_t *chain, qvec_t headerhash) {
+  qblock_t *qblock = NULL;
+  leveldb_readoptions_t *roptions = NULL;
+  char *value = NULL;
+  size_t valuelen;
+  char *err = NULL;
+
+  roptions = leveldb_readoptions_create();
+  value = leveldb_get(chain->state, roptions, (void*)headerhash.data, headerhash.len,
+                      &valuelen, &err);
+
+  if (err != NULL) {
+    char *s = qrl_sprintx(headerhash.data, headerhash.len);
+    QRL_LOG_EX(QRL_LOG_ERROR,
+               "%s: leveldb: %s. failed on block %s\n",
+               chain->state_dir, err, s);
+    free(s);
+    goto exit;
+  }
+
+  /* deserialize Block */
+  qblock = unpack_qblock(&(qvec_t){.data = (void*)value, .len = valuelen});
+  assert(qblock != NULL);
+
+exit:
+  leveldb_free(err);
+  leveldb_free(value);
+  leveldb_readoptions_destroy(roptions);
+  free(headerhash.data);
+
+  return qblock;
+}
+
+
+
+/////////
+
+
 
 qu64 qrl_get_chain_height(qchain_t *chain) {
   leveldb_readoptions_t *roptions = NULL;

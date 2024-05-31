@@ -4,43 +4,11 @@
 #include "tx.h"
 #include "dev_config.h"
 
-#if 0
-/* FIXME: HACK: this computes the merkle root recursively. it
- * may be prone to stackoverflow.
- */
-qvec_t compute_merkle_hash(qvec_t *vec, size_t nb_vec) {
-  if (nb_vec == 1)
-    return qrl_qveccpy(*vec);
-
-  size_t nb_hashed = nb_vec/2;
-  /* if odd */
-  if (nb_vec%2) nb_hashed += 1;
-
-  qvec_t *hashed = malloc(sizeof(*hashed)*nb_hashed);
-  for (size_t i = 0, c = 0; i < nb_vec/2; i++, c+= 2) {
-    hashed[i] = new_qvec(32);
-    qvec_t catted = qrl_qveccat(vec[c], vec[c+1]);
-    qrl_sha256(hashed[i].data, catted.data, catted.len);
-    free(catted.data);
-  }
-
-  if (nb_vec%2) hashed[nb_hashed - 1] = qrl_qveccpy(vec[nb_vec - 1]); 
-
-  qvec_t merkle_hash = compute_merkle_hash(hashed, nb_hashed);
-  for (size_t i = 0; i < nb_hashed; i++)
-    free(hashed[i].data);
-  free(hashed);
-
-  return merkle_hash;
-}
-#endif
-
 qvec_t qrl_generate_mining_blob(const qblock_hdr_t *block_hdr) {
   struct inctr_t ctr = {0};
   size_t sincr = 0;
 
   /* PHASE 1 */
-  /* unsafe memory magic */
   size_t blob1_len =
     sizeof(block_hdr->block_number) +
     sizeof(block_hdr->timestamp) +
@@ -81,12 +49,12 @@ qvec_t qrl_generate_mining_blob(const qblock_hdr_t *block_hdr) {
   memcpy(mining_nonce_bytes + 4, &(uint64_t){QINT2BIG_64(block_hdr->extra_nonce)}, 8);
 
   /* mining nonce offset = 39 */
-  /* 76 -18  = 58*/
-  const int mining_nonce_offset = QRL_BLOCK_MINING_NONCE_OFFSET;
+  /* QMINING_BLOB_SIZE -18  = 58*/
+  const int mining_nonce_offset = QBLOCK_MINING_NONCE_OFFSET;
 
   /* mining_blob_final = mining_blob_final[:nonce_offset] + mining_nonce_bytes +
    * mining_blob_final[nonce_offset:] */
-  qvec_t mining_blob_final = new_qvec(76);
+  qvec_t mining_blob_final = qrl_qvecmalloc(QMINING_BLOB_SIZE);
   ctr.i = 0;
 
   sincr = mining_nonce_offset;
@@ -102,7 +70,10 @@ qvec_t qrl_generate_mining_blob(const qblock_hdr_t *block_hdr) {
 }
 
 static inline qvec_t compute_merkle_hash_iterative(qvec_t *vec, size_t nb_vec) {
-  if (nb_vec == 0) { assert(0);}
+  if (nb_vec == 0) {
+    QRL_LOG_EX(QRL_LOG_WARNING, "nb_vec == 0\n");
+    return QVEC_NULL;
+  }
   if (nb_vec == 1)
     return qrl_qveccpy(*vec);
 
@@ -114,7 +85,7 @@ static inline qvec_t compute_merkle_hash_iterative(qvec_t *vec, size_t nb_vec) {
   const size_t original_nb_hashed = nb_hashed;
 
   for (size_t i = 0; i < original_nb_hashed; i++) {
-    hashed[i] = new_qvec(32);
+    hashed[i] = qrl_qvecmalloc(32);
   }
 
   while (nb_vec > 1) {
@@ -122,8 +93,8 @@ static inline qvec_t compute_merkle_hash_iterative(qvec_t *vec, size_t nb_vec) {
     if (nb_vec % 2) nb_hashed += 1;
 
     /* concatenate and hash */
-    for (size_t i = 0, c = 0; i < nb_vec / 2; i++, c += 2) {
-      qvec_t catted = qrl_qveccat(vec[c], vec[c + 1]);
+    for (size_t i = 0; i < nb_vec / 2; i++) {
+      qvec_t catted = qrl_qveccat(vec[i*2], vec[i*2 + 1]);
       qrl_sha256(hashed[i].data, catted.data, catted.len);
       free(catted.data);
     }
@@ -131,7 +102,7 @@ static inline qvec_t compute_merkle_hash_iterative(qvec_t *vec, size_t nb_vec) {
     if (nb_vec % 2) {
       free(hashed[nb_hashed - 1].data);
       /* we can't just `memcpy(hashed[nb_hashed - 1].data, vec[nb_vec - 1].data, vec[nb_vec - 1].len)`
-       * since hashed[].data only have 32 bytes allocated from new_qvec(32).
+       * since hashed[].data only have 32 bytes allocated from qrl_qvecmalloc(32).
        */
       hashed[nb_hashed - 1] = qrl_qveccpy(vec[nb_vec - 1]);
     }
@@ -141,7 +112,7 @@ static inline qvec_t compute_merkle_hash_iterative(qvec_t *vec, size_t nb_vec) {
 
   qvec_t ret = *hashed;
   for (size_t i = 1; i < original_nb_hashed; i++) {
-    del_qvec(hashed[i]);
+    qrl_qvecfree(hashed[i]);
   }
   free(hashed);
 
@@ -152,6 +123,7 @@ qvec_t qrl_compute_merkle_root(qtx_t *txs, size_t nb_txs) {
   qvec_t merkle_root = QVEC_NULL;
 
   if (nb_txs == 0) {
+    QRL_LOG_EX(QRL_LOG_WARNING, "nb_txs == 0\n");
     return QVEC_NULL;
   }
 
@@ -169,11 +141,11 @@ qvec_t qrl_compute_merkle_root(qtx_t *txs, size_t nb_txs) {
 qvec_t qrl_compute_hash_hdr(const qblock_hdr_t *block_hdr, const hfunc_ctx *hfunc) {
   /* 0 + SHAKE128(block_number || timestamp || hash_phdr || reward_block || reward_fee, 58) */
   qvec_t blob = qrl_generate_mining_blob(block_hdr);
-  assert(blob.len == 76);
-  qu8 mining_blob[76];
+  assert(blob.len == QMINING_BLOB_SIZE);
+  qu8 mining_blob[QMINING_BLOB_SIZE];
   /* copy on stack */
-  memcpy(mining_blob, blob.data, 76);
-  del_qvec(blob);
+  memcpy(mining_blob, blob.data, QMINING_BLOB_SIZE);
+  qrl_qvecfree(blob);
 
   /* Back in the days of cryptonight, it was as simple to call the cryptonight hash
    * function as:
@@ -201,7 +173,7 @@ qvec_t qrl_compute_hash_hdr(const qblock_hdr_t *block_hdr, const hfunc_ctx *hfun
    * */
   /* XXX: hfunc->randomx.{machine,cache} are initialized outside of this function and
    * changes depending on the seed height */
-  return hfunc->hfunc(hfunc, (qvec_t){.data=mining_blob, .len=76});
+  return hfunc->hfunc(hfunc, (qvec_t){.data=mining_blob, .len=QMINING_BLOB_SIZE});
 }
 
 /* Verifies block headsr and transactions */ 
@@ -211,56 +183,33 @@ int qrl_verify_qblock(const qblock_t *qblock, const hfunc_ctx *hfunc) {
 
   hash_hdr = qrl_compute_hash_hdr(&qblock->block_hdr, hfunc);
   assert(hash_hdr.data != NULL);
+#define EXITIF(x, ...)                                \
+  do {                                                \
+    if (x) {                                          \
+      QRL_LOG_EX(QRL_LOG_ERROR, #x ": " __VA_ARGS__); \
+      goto exit;                                      \
+    }                                                 \
+  } while (0)
 
-  if (memcmp(hash_hdr.data, qblock->block_hdr.hash_hdr.data, 32)) {
-    QRL_LOG_EX(QRL_LOG_ERROR, "hash header mismatched\n");
-    goto exit;
-  }
-//  qrl_dump(merkle_root.data, merkle_root.len);
-
-
-  if (qblock->nb_txs == 0) {
-    QRL_LOG_EX(QRL_LOG_ERROR, "no transaction\n");
-    goto exit;
-  }
-
-  if (qblock->txs[0].tx_type != QTX_COINBASE) {
-    QRL_LOG_EX(QRL_LOG_ERROR, "tansaction does not start with coinbase\n");
-    goto exit;
-  }
-
-  if (qblock->txs[0].nonce != qblock->block_hdr.block_number + 1) {
-    QRL_LOG_EX(QRL_LOG_ERROR, "invalid coinbase nonce\n");
-    goto exit;
-  }
-
-  if (qrl_verify_qtx(&qblock->txs[0]))
-    goto exit;
-
+  EXITIF(memcmp(hash_hdr.data, qblock->block_hdr.hash_hdr.data, 32), "hash header mismatch\n");
+  EXITIF(qblock->nb_txs == 0, "no transaction\n");
+  EXITIF(qblock->txs[0].tx_type != QTX_COINBASE, "transaction does not start with coinbase\n");
+  EXITIF(qblock->txs[0].nonce != qblock->block_hdr.block_number + 1, "invalid coinbase nonce\n");
+  EXITIF(qrl_verify_qtx(&qblock->txs[0]), "block verification failed\n");
   for (size_t i = 1; i < qblock->nb_txs; i++) {
-    if (qblock->txs[i].tx_type == QTX_COINBASE) {
-      QRL_LOG_EX(QRL_LOG_ERROR, "multiple coinbase transaction\n");
-      goto exit;
-    }
+    EXITIF (qblock->txs[i].tx_type == QTX_COINBASE, "multiple coinbase transaction\n");
   }
-
   for (size_t i = 1; i < qblock->nb_txs; i++) {
-    if (qrl_verify_qtx(&qblock->txs[i])) {
-      QRL_LOG_EX(QRL_LOG_ERROR, "invalid tx at index %zu\n", i);
-      /* do not waste precious time verifying other txs in an already invalid block */
-      goto exit;
-    }
+    EXITIF(qrl_verify_qtx(&qblock->txs[i]), "invalid tx at index %zu\n", i);
   }
-
   merkle_root = qrl_compute_merkle_root(qblock->txs, qblock->nb_txs);
-  if (memcmp(merkle_root.data, qblock->block_hdr.merkle_root.data, 32)) {
-    QRL_LOG_EX(QRL_LOG_ERROR, "merkle root mismatched\n");
-    goto exit;
-  }
+  EXITIF(memcmp(merkle_root.data, qblock->block_hdr.merkle_root.data, 32), "merkle root mismatch\n");
+
+#undef EXITIF
 
   ret ^= ret;
 exit:
-  free(hash_hdr.data);
-  free(merkle_root.data);
+  qrl_qvecfree(hash_hdr);
+  qrl_qvecfree(merkle_root);
   return ret;
 }

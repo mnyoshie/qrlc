@@ -36,7 +36,7 @@ int main() {
 
   qblock_t *qblock = pbblock_to_qblock(pbblock_resp->block);
   assert(qblock != NULL);
-  print_qblock(qblock, 0 /* verbose = 1*/);
+  print_qblock(qblock, 0);
 
   hfunc_ctx hfunc;
   hfunc.hfunc = hfunc_cryptonight1;

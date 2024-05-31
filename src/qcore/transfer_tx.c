@@ -5,7 +5,7 @@
 #include "log.h"
 #include "utils.h"
 #include "hash.h"
-#include "xmssf.h"
+#include "xmss.h"
 
 #include "dev_config.h"
 
@@ -16,11 +16,6 @@ static qvec_t get_data_hash(const qtx_t *tx) {
 
   struct inctr_t ctr = {0};
   size_t sincr = 0;
-  if (tx->transfer.nb_amounts != tx->transfer.nb_addrs_to) {
-    QRL_LOG_EX(QRL_LOG_ERROR, "malformed tx-> %zu (n_addrs) != %zu (n_ammounts)\n",
-               tx->transfer.nb_addrs_to, tx->transfer.nb_amounts);
-    return QVEC_NULL;
-  }
 
   size_t data_blob_len =
       tx->master_addr.len + sizeof(tx->fee) + tx->transfer.message_data.len;
@@ -35,7 +30,7 @@ static qvec_t get_data_hash(const qtx_t *tx) {
   //                          byteorder='big', signed=False))
   //
   //         return tmptxhash
-  for (size_t i = 0; i < tx->transfer.nb_addrs_to; i++)
+  for (size_t i = 0; i < tx->transfer.nb_transfer_to; i++)
     data_blob_len +=
         tx->transfer.addrs_to[i].len + sizeof(tx->transfer.amounts[i]);
 
@@ -55,7 +50,7 @@ static qvec_t get_data_hash(const qtx_t *tx) {
   do {
     size_t seek = ctr.i;
 
-    for (size_t i = 0; i < tx->transfer.nb_addrs_to; i++) {
+    for (size_t i = 0; i < tx->transfer.nb_transfer_to; i++) {
       memcpy(data_blob + seek, tx->transfer.addrs_to[i].data, tx->transfer.addrs_to[i].len);
       seek += tx->transfer.addrs_to[i].len;
       memcpy(data_blob + seek, &(uint64_t){QINT2BIG_64(tx->transfer.amounts[i])}, sizeof(tx->transfer.amounts[i]));
@@ -64,7 +59,7 @@ static qvec_t get_data_hash(const qtx_t *tx) {
     assert(seek == data_blob_len);
   } while (0);
 
-  qvec_t data_hash = new_qvec(32);
+  qvec_t data_hash = qrl_qvecmalloc(32);
   assert(data_hash.data != NULL);
 
   qrl_sha256(data_hash.data, data_blob, data_blob_len);
@@ -94,7 +89,7 @@ qvec_t qrl_compute_qtx_transfer_hash(const qtx_t *tx) {
 
   sincr = tx->public_key.len;
   memcpy(transaction_blob + incrementp(&ctr, sincr), tx->public_key.data, sincr);
-  qvec_t tx_hash = new_qvec(32);
+  qvec_t tx_hash = qrl_qvecmalloc(32);
 
   qrl_sha256(tx_hash.data, transaction_blob, transaction_blob_len);
 //  QRL_LOG("computed transaction hash\n");
@@ -114,10 +109,7 @@ int qrl_verify_qtx_transfer(const qtx_t *tx) {
 
 //  QRL_LOG("data hash: ");
 //  qrl_printx(data_hash.data, 32);
-  if (qrl_verify_sig(
-          (qvec_t){.len = tx->public_key.len, .data = tx->public_key.data},  //
-          (qvec_t){.len = data_hash.len, .data = data_hash.data},                          //
-          (qvec_t){.len = tx->signature.len, .data = tx->signature.data})) {
+  if (xmss_verify_sig(data_hash, tx->signature, tx->public_key)){
     QRL_LOG_EX(QRL_LOG_ERROR, "invalid signature\n");
     goto exit;
   }
@@ -129,14 +121,14 @@ int qrl_verify_qtx_transfer(const qtx_t *tx) {
     QRL_LOG_EX(QRL_LOG_ERROR, "transaction hash mismatch\n");
     goto exit;
   }
-  if (qrl_verify_public_address(tx->master_addr, tx->public_key)) {
-    QRL_LOG_EX(QRL_LOG_ERROR, "invalid QRL public address\n");
-    goto exit;
-  }
+//  if (qrl_verify_public_address(tx->master_addr, tx->public_key)) {
+//    QRL_LOG_EX(QRL_LOG_ERROR, "invalid QRL public address\n");
+//    goto exit;
+//  }
 
   ret ^= ret;
 exit:
-  del_qvec(data_hash);
-  del_qvec(tx_hash);
+  qrl_qvecfree(data_hash);
+  qrl_qvecfree(tx_hash);
   return ret;
 }

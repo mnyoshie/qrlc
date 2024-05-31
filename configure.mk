@@ -116,7 +116,9 @@ $(eval $(call test-compiler-feature,avx2,__AVX2__))
 
 all:
 	@[ $(err) -eq 1 ] && false || true
-	echo '$(call get-machine)' > config.mk
+	echo 'CC := $(CC)' > config.mk
+	echo 'CXX := $(CXX)' >> config.mk
+	echo '$(call get-machine)' >> config.mk
 	echo '$(call get-machine-endian)' >> config.mk
 	echo '$(call test-cxx-feature,atomic)' >> config.mk
 	echo '$(call test-cxx-feature,hwcap)' >> config.mk

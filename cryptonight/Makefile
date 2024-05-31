@@ -7,13 +7,13 @@
 #cryptonight https://github.com/monero-project/monero/tree/2844b5b8dbcfcfe4b3c9dbdf2d16ce2955b13665 (commit from year 2021)
 
 
+-include ../config.mk
 CFLAGS += -O2 -std=gnu11 -fPIE -I./include -I../randomx
 CXXFLAGS += -O2 -std=gnu++11 -fPIE -I./include -I../ramdomx
 
 CFLAGS += $(EXTRACFLAGS)
 CXXFLAGS += $(EXTRACXXFLAGS)
 
--include ../config.mk
 
 csources += $(directory)aesb.c
 csources += $(directory)src/memwipe.c
