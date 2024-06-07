@@ -65,9 +65,14 @@ int main() {
   SET_ERR_IF(memcmp(pub_addr2.data, pub_caddr2, sizeof(pub_caddr2)), \
       "test 2 failed"
   );
+  qrl_qvecfree(pub_key1);
+  qrl_qvecfree(pub_key2);
+  qrl_qvecfree(pub_addr1);
+  qrl_qvecfree(pub_addr2);
 
   if (err) {
     abort();
   }
+
   return 0;
 }

@@ -18,6 +18,7 @@
 #include <inttypes.h>
 #include <limits.h>
 #include <math.h>
+#include <stdarg.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -188,6 +189,7 @@ static vec_t vecmem(void *data, size_t len);
 
 /* concatenates a and b */
 static vec_t veccat(vec_t a, vec_t b);
+static vec_t veccat2(char *fmt, ...);
 
 /* xor's a and b (a.len must equal b.len) */
 static vec_t vecxor(vec_t a, vec_t b);
@@ -345,6 +347,7 @@ static inline vec_t hash_h(hfunc_ctx *hfunc, vec_t in, const vec_t pub_seed,
   vec_t buf = vecxor(in, bitmask);
 
   vec_t ret = core_hash(hfunc, 1, key, buf, n);
+  vecfree(key);
   vecfree(bitmask1);
   vecfree(bitmask2);
   vecfree(bitmask);
@@ -498,6 +501,67 @@ inline vec_t veccat(vec_t a, vec_t b) {
   char *data = malloc(len);
   memcpy(data, a.data, a.len);
   memcpy(data + a.len, b.data, b.len);
+  return (vec_t){.data = data, .len = len};
+}
+
+/* fmt an array of 'v' or 'p'
+ * example
+ *   veccat2("vv", vec_t, vec_t);
+ *   veccat2("pv", size_t, vec_t*, vec_t);
+ *   veccat2("vp", vec_t, size_t, vec_t*);
+ *   veccat2("pp", size_t, vec_t*, size_t, vec_t*);
+ *   veccat2("ppvpvv", size_t, vec_t*, size_t, vec_t*, vec_t, size_t, vec_t *, vec_t, vec_t);
+ */
+inline vec_t veccat2(char *fmt, ...) {
+  size_t len = 0;
+  va_list ap;
+  vec_t v, *pv;
+  size_t n;
+
+  va_start(ap, fmt);
+
+  for (size_t c = 0; fmt[c]; c++) {
+    switch (fmt[c]) {
+      case 'v':
+        v = va_arg(ap, vec_t);
+        len += v.len;
+        break;
+      case 'p':
+        n = va_arg(ap, size_t);
+        pv = va_arg(ap, vec_t *);
+        for (size_t i = 0; i < n; i++) len += pv[i].len;
+        break;
+      default:
+        assert(0);
+    }
+  }
+  va_end(ap);
+
+  char *data = malloc(len);
+  assert(data != NULL);
+
+  va_start(ap, fmt);
+  size_t seek = 0;
+  for (size_t c = 0; fmt[c]; c++) {
+    switch (fmt[c]) {
+      case 'v':
+        v = va_arg(ap, vec_t);
+        memcpy(data + seek, v.data, v.len);
+        seek += v.len;
+        break;
+      case 'p':
+        n = va_arg(ap, size_t);
+        pv = va_arg(ap, vec_t *);
+        for (size_t i = 0; i < n; i++) {
+          memcpy(data + seek, pv[i].data, pv[i].len);
+          seek += pv[i].len;
+        }
+        break;
+      default:
+        assert(0);
+    }
+  }
+  va_end(ap);
   return (vec_t){.data = data, .len = len};
 }
 
@@ -722,6 +786,8 @@ static vec_t tree_hash(tree_t *t, wots_params *wparams, const vec_t pub_seed) {
    * hash in an actual recursive call but with fewer lines of code.
    */
 
+  uint32_t n = wparams->n;
+  uint8_t catted[2 * n];
   typedef struct {
     /* argument */
     tree_t *t;
@@ -773,8 +839,11 @@ static vec_t tree_hash(tree_t *t, wots_params *wparams, const vec_t pub_seed) {
     arg_calls[nb_calls].right_hash = arg_calls[nb_calls + 1].ret;
     // vec_t right_hash = get_hash(t->right, wparams, pub_seed);
 
-    vec_t catted =
-        veccat(arg_calls[nb_calls].left_hash, arg_calls[nb_calls].right_hash);
+    memcpy(catted, arg_calls[nb_calls].left_hash.data, n);
+    memcpy(catted + n, arg_calls[nb_calls].right_hash.data, n);
+    //    vec_t catted =
+    //        veccat(arg_calls[nb_calls].left_hash,
+    //        arg_calls[nb_calls].right_hash);
     // VECDEBUG(catted);
 
     uint32_t node_addr[8] = {0};
@@ -786,9 +855,10 @@ static vec_t tree_hash(tree_t *t, wots_params *wparams, const vec_t pub_seed) {
     //        arg_calls[nb_calls].t->node_ndx);
 
     arg_calls[nb_calls].t->hash =
-        hash_h(&wparams->hfunc, catted, pub_seed, node_addr, wparams->n);
+        hash_h(&wparams->hfunc, (vec_t){.data = (void *)catted, .len = 2 * n},
+               pub_seed, node_addr, wparams->n);
     // t->hash = hash_h(catted, pub_seed, node_addr, wparams->n);
-    vecfree(catted);
+    // vecfree(catted);
     arg_calls[nb_calls].ret = arg_calls[nb_calls].t->hash;
     // return t->hash;
 
@@ -843,8 +913,13 @@ static tree_t *tree_generate(vec_t sk_seed, wots_params *wparams,
 
 #include "include/types.h"
 
+/* for QINT2BIG_* */
+#include "utils.h"
+
 #define TOVEC(q) \
   (vec_t) { .data = (void *)q.data, .len = q.len }
+#define TOQVEC(v) \
+  (qvec_t) { .data = (void *)v.data, .len = v.len }
 
 /* for single byte in a uint8_t array */
 #define GET_SIGB(x) ((x >> 4) & 0x0f)
@@ -879,17 +954,17 @@ qvec_t xmss_pubkey_to_pubaddr(qvec_t pubkey) {
   return (qvec_t){.data = (void *)pubaddr.data, .len = pubaddr.len};
 }
 
-static wots_params wots_init2(uint8_t hf, size_t digest_len, int n, int w) {
+static wots_params wots_init2(uint8_t hf, int n, int w) {
   switch (hf) {
     case 0:
-      return wots_init(
-          (hfunc_ctx){.digest_len = digest_len, .hfunc = hfunc_sha256}, n, w);
+      return wots_init((hfunc_ctx){.digest_len = n, .hfunc = hfunc_sha256}, n,
+                       w);
     case 1:
-      return wots_init(
-          (hfunc_ctx){.digest_len = digest_len, .hfunc = hfunc_shake128}, n, w);
+      return wots_init((hfunc_ctx){.digest_len = n, .hfunc = hfunc_shake128}, n,
+                       w);
     case 2:
-      return wots_init(
-          (hfunc_ctx){.digest_len = digest_len, .hfunc = hfunc_shake256}, n, w);
+      return wots_init((hfunc_ctx){.digest_len = n, .hfunc = hfunc_shake256}, n,
+                       w);
     default:
       assert(0);
   }
@@ -907,11 +982,22 @@ qvec_t xmss_gen_pubkey(qvec_t hexseed) {
   /* XMSS */
   assert(sig == 0);
   /* HF */
-  wparams = wots_init2(hf, 32, n, w);
+  wparams = wots_init2(hf, n, w);
   /* AF: SHA2_256X */
   assert(af == 0);
 
   vec_t seed = vecmem(hexseed.data + 3, 48);
+
+  /* randbytes format (96 octets):
+   *
+   *    size          |         name            |       description
+   * -----------------+-------------------------+----------------------------
+   *    32 octets     |       sk_seed           |
+   * -----------------+-------------------------+----------------------------
+   *    32 octets     |       sk_prf            |      Maybe unused?
+   * -----------------+-------------------------+----------------------------
+   *    32 octets     |       pub_seed          |
+   */
   vec_t randbytes = vechash_shake256(seed, 96 /* 3*32 */);
   // VECDEBUG(randbytes);
 
@@ -926,8 +1012,16 @@ qvec_t xmss_gen_pubkey(qvec_t hexseed) {
   // VECDEBUG(pub_seed);
 
   tree_t *mtree = tree_generate(sk_seed, &wparams, pub_seed, height);
-  /* pub_key (67 bytes) = [ QRL addr desc (3 bytes) || merkle root (32 bytes) ||
-   * pub_seed (32 bytes) ] */
+
+  /* pub_key format (67 octets)
+   *    size          |         name            |       description
+   * -----------------+-------------------------+----------------------------
+   *  3 octets        |      qrl addr desc      |  QRL  address descriptor
+   *  ----------------+-------------------------+----------------------------
+   *  32 octets       |         root            |       XMSS root
+   *  ------------------------------------------+----------------------------
+   *  32 octets       |       pub seed          |       public seed
+   */
   qvec_t pub_key = qrl_qvecmalloc(67);
   memcpy(pub_key.data, hexseed.data, 3);
   memcpy(pub_key.data + 3, mtree->hash.data, 32);
@@ -1060,7 +1154,7 @@ static vec_t validate_authpath(wots_params *wparams, vec_t leaf,
   return ret;
 }
 
-/* pub_key format (67 bytes):
+/* pub_key format (67 octets):
  *
  *    size          |         name            |       description
  * -----------------+-------------------------+----------------------------
@@ -1074,23 +1168,25 @@ static vec_t validate_authpath(wots_params *wparams, vec_t leaf,
  *
  * sig format:
  *
- *    size          |         name           |       description
- * -----------------+------------------------+-----------------------------
- *  4 octets        |       ots index        |  an integer index to a ots
- *  ----------------+------------------------+-----------------------------
- *  32 octets       |          R             |  used in hashed key
- *  ----------------+------------------------+-----------------------------
- *  wparams->len*32 |         wsig           |  wots signature
- *  ----------------+------------------------+-----------------------------
- *  h*32            |         auth           |  xmss authentication hashes
- *  ----------------'------------------------+-----------------------------
+ *    size                 |         name           |       description
+ * ------------------------+------------------------+-----------------------------
+ *  4 octets               |       ots index        |  an integer index to a ots
+ *  -----------------------+------------------------+-----------------------------
+ *  32 octets              |          R             |  used in hashed key
+ *  -----------------------+------------------------+-----------------------------
+ *  wparams->len*32 octets |         wsig           |  wots signature
+ *  -----------------------+------------------------+-----------------------------
+ *  h*32 octets            |         auth           |  xmss authentication
+ * hashes
+ *  -----------------------'------------------------+-----------------------------
  *
- * pub_key (67 bytes): [qrl addr desc (3 bytes) || root (32 bytes) || pub_seed
- * (32 bytes)
  *
  */
-int xmss_verify_sig(qvec_t msg, qvec_t sig, qvec_t pub_key) {
-  assert(msg.len == 32);
+int xmss_verify_sig(qvec_t qmsg, qvec_t qsig, qvec_t qpub_key) {
+  vec_t msg = TOVEC(qmsg);
+  vec_t sig = TOVEC(qsig);
+  vec_t pub_key = TOVEC(qpub_key);
+
   assert(pub_key.len == 67);
   int ret = 0xff;
   size_t h = GET_P1B(pub_key.data[1]) * 2;
@@ -1098,10 +1194,10 @@ int xmss_verify_sig(qvec_t msg, qvec_t sig, qvec_t pub_key) {
   int n = 32;
   int w = 16;
 
-  wots_params wparams = wots_init2(hf, 32, n, w);
+  wots_params wparams = wots_init2(hf, n, w);
   assert((size_t)(4 + 32 + wparams.len * 32 + h * 32) == sig.len);
-  vec_t *wsig = get_wsig_from_sig(TOVEC(sig), wparams.len * 32);
-  vec_t *auth = get_auth_from_sig(TOVEC(sig), h * 32);
+  vec_t *wsig = get_wsig_from_sig(sig, wparams.len * 32);
+  vec_t *auth = get_auth_from_sig(sig, h * 32);
 
   uint8_t hash_key[3 * n];
 
@@ -1125,9 +1221,8 @@ int xmss_verify_sig(qvec_t msg, qvec_t sig, qvec_t pub_key) {
   memcpy(hash_key + n, pub_key.data + 3, n);
   to_byte(hash_key + 2 * n, idx, n);
 
-  // h_msg(msg_h, sig_msg + tmp_sig_len, m_len, hash_key, 3*n, n);
-  vec_t msg_h = h_msg(&wparams, TOVEC(msg),
-                      (vec_t){.data = (void *)hash_key, .len = 3 * n});
+  vec_t msg_h =
+      h_msg(&wparams, msg, (vec_t){.data = (void *)hash_key, .len = 3 * n});
   //-----------------------
   // Verify signature
   //-----------------------
@@ -1160,57 +1255,202 @@ int xmss_verify_sig(qvec_t msg, qvec_t sig, qvec_t pub_key) {
   if (!memcmp(root.data, pub_key.data + 3, n)) ret ^= ret;
 
   vecfree(root);
-  ;
   return ret;
 }
 
-static int noopmain() {
-  qvec_t hexseed = {
-      .data = (char[]){0x00, 0x05, 0x00, 0x5c, 0x4c, 0x67, 0x64, 0x50, 0x4c,
-                       0x48, 0xba, 0x31, 0xe9, 0x36, 0x30, 0x71, 0x98, 0x42,
-                       0xb4, 0xaf, 0x9a, 0xab, 0xf6, 0x9a, 0x8b, 0x1a, 0xea,
-                       0xe3, 0x60, 0x6d, 0xce, 0xd8, 0x98, 0xd6, 0x8e, 0xc3,
-                       0x1e, 0x3a, 0x35, 0xee, 0x7e, 0xe6, 0xc3, 0x8a, 0xf7,
-                       0xfe, 0xe5, 0x9e, 0xab, 0xb1, 0x36},
-      .len = 51};
+static vec_t *get_auth_from_tree(tree_t *mtree, uint32_t ots) {
+  assert(mtree->node_height + 1 < 24 &&  mtree->node_height > 0);
+  uint32_t h = mtree->node_height + 1 ;
+  uint32_t mask = (uint32_t)1 << (h-1);
+  uint32_t bits = ots; 
+  vec_t *auth = malloc(sizeof(*auth)*h);
 
-  /* randbits (96 bytes) = [sk_seed (32 bytes) || sk_prf (32 bytes) || pub_seed
-   * (32 bytes)] */
-  vecprintx(*(vec_t *)&hexseed);
-  qvec_t pub_key = xmss_gen_pubkey(hexseed);
-  // VECDEBUG(*(vec_t*)&pub_key);
-  //   puts("");
-  //  vec_t randbits = vechash_shake256(hexseed, 96 /* 3*32 */);
-  //  VECDEBUG(randbits);
-  //  puts("");
-  //
-  //  vec_t sk_seed = vecmalloc(32);
-  //  memcpy(sk_seed.data, randbits.data, 32);
-  //  VECDEBUG(sk_seed);
-  //
-  //  vec_t sk_prf = vecmalloc(32);
-  //  memcpy(sk_prf.data, randbits.data + 32, 32);
-  //
-  //  vec_t pub_seed = vecmalloc(32);
-  //  memcpy(pub_seed.data, randbits.data + 64, 32);
-  //  VECDEBUG(pub_seed);
-  //
-  //  tree_t *mtree = tree_generate(sk_seed, &wparams, pub_seed, 10);
-  //  vec_t pk = vecmalloc(67);
-  //  memcpy(pk.data, qaddr, 3);
-  //  memcpy(pk.data + 3, mtree->hash.data, 32);
-  //  memcpy(pk.data + 3 + 32, pub_seed.data, 32);
-  //  VECDEBUG(pk);
-  //
-  //  vec_t hashed = vechash_sha256(pk);
-  //  VECDEBUG(hashed);
-  // vec_t ltree_root = gen_leaf_wots(sk_seed, &wparams, pub_seed, ltree_addr,
-  // ots_addr); vecprintx(ltree_root); puts("");
-  //  wots_pkgen(hash_func, pk, seed, &(params->wots_par), pub_seed, ots_addr);
-  //
-  //  l_tree(hash_func, &params->wots_par, leaf, pk, pub_seed, ltree_addr);
-  //  vec_t *wots_pk = wots_pkgen(sk, params
-  // vecprintx(randbits);
+  /* auth traversal by flipping bits */
+  for (uint32_t i = 0; i < h; i++) {
+    if (mask & bits) {
+      auth[(h-1) - i] = veccpy(mtree->left->hash);
+      mtree = mtree->right;
+    }
+    else {
+      auth[(h-1) - i] = veccpy(mtree->right->hash);
+      mtree = mtree->left;
+    }
+    assert(mtree != NULL);
+    mask >>= 1;
+  }
 
-  return 0;
+  return auth;
+}
+
+vec_t *wots_sign(vec_t msg, vec_t sk, wots_params *wparams, vec_t pub_seed,
+                 uint32_t addr[8]) {
+  assert(msg.len == wparams->n);
+  int basew[wparams->len];
+  int csum = 0;
+  uint32_t i = 0;
+
+  base_w(basew, wparams->len_1, (void *)msg.data, wparams);
+
+  for (i = 0; i < wparams->len_1; i++) {
+    csum += wparams->w - 1 - basew[i];
+  }
+
+  csum = csum << (8 - ((wparams->len_2 * wparams->log_w) % 8));
+
+  uint32_t len_2_bytes = ((wparams->len_2 * wparams->log_w) + 7) / 8;
+
+  unsigned char csum_bytes[len_2_bytes];
+  to_byte(csum_bytes, csum, len_2_bytes);
+
+  int csum_basew[wparams->len_2];
+
+  base_w(csum_basew, wparams->len_2, csum_bytes, wparams);
+
+  for (i = 0; i < wparams->len_2; i++) {
+    basew[wparams->len_1 + i] = csum_basew[i];
+  }
+
+  vec_t *sig = expand_seed(&wparams->hfunc, sk, wparams->n, wparams->len);
+  vec_t *pk = malloc(sizeof(*pk) * wparams->len);
+
+  for (i = 0; i < wparams->len; i++) {
+    setChainADRS(addr, i);
+    pk[i] = gen_chain(sig[i], 0, basew[i], wparams, pub_seed, addr);
+    vecfree(sig[i]);
+  }
+  free(sig);
+
+  return pk;
+}
+
+qvec_t xmss_sign_msg(qvec_t qhexseed, qvec_t qmsg, uint32_t ots) {
+  assert(qhexseed.len == 51);
+  wots_params wparams;
+  vec_t hexseed = TOVEC(qhexseed);
+  vec_t msg = TOVEC(qmsg);
+  assert(hexseed.len == 51);
+  int n = 32;
+  int w = 16;
+  uint8_t hf = GET_HFB(hexseed.data[0]);
+  uint8_t af = GET_AFB(hexseed.data[1]);
+  uint8_t height = GET_P1B(hexseed.data[1]) * 2;
+  assert(ots <= (uint32_t)pow(2.0,(float)height) - 1);
+
+  {
+    /* XMSS */
+    uint8_t sig = GET_SIGB(hexseed.data[0]);
+    assert(sig == 0);
+  }
+  /* HF */
+  wparams = wots_init2(hf, n, w);
+  /* AF: SHA2_256X */
+  assert(af == 0);
+
+  vec_t seed = vecmem(hexseed.data + 3, 48);
+
+  /* randbytes format (96 octets):
+   *
+   *    size          |         name            |       description
+   * -----------------+-------------------------+----------------------------
+   *    32 octets     |       sk_seed           |
+   * -----------------+-------------------------+----------------------------
+   *    32 octets     |       sk_prf            |      Maybe unused?
+   * -----------------+-------------------------+----------------------------
+   *    32 octets     |       pub_seed          |
+   */
+  vec_t randbytes = vechash_shake256(seed, 96 /* 3*32 */);
+  // VECDEBUG(randbytes);
+
+  vec_t sk_seed = vecmem(randbytes.data, 32);
+  // VECDEBUG(sk_seed);
+
+  vec_t sk_prf = vecmem(randbytes.data + 32, 32);
+  // VECDEBUG(sk_prf);
+
+  vec_t pub_seed = vecmem(randbytes.data + 64, 32);
+  // VECDEBUG(pub_seed);
+
+  tree_t *mtree = tree_generate(sk_seed, &wparams, pub_seed, height);
+
+  uint32_t idx = ots;
+
+  // index as 32 bytes string
+  uint8_t idx_bytes_32[32];
+  to_byte(idx_bytes_32, idx, 32);
+
+  uint8_t hash_key[3 * n];
+
+  // -- Secret key for this non-forward-secure version is now updated.
+  // -- A productive implementation should use a file handle instead and write
+  // the updated secret key at this point!
+  // unsigned long long sig_msg_len = 0;
+  // Init working params
+  uint32_t ots_addr[8] = {0};
+
+  // ---------------------------------
+  // Message Hashing
+  // ---------------------------------
+
+  // First compute pseudorandom value
+  vec_t R = prf(&wparams.hfunc, (vec_t){.data = (void *)idx_bytes_32, .len = n},
+                sk_prf, n);
+  // Generate hash key (R || root || idx)
+  memcpy(hash_key, R.data, n);
+  memcpy(hash_key + n, mtree->hash.data, n);
+  to_byte(hash_key + 2 * n, idx, n);
+  // Then use it for message digest
+  vec_t msg_h =
+      h_msg(&wparams, msg, (vec_t){.data = (void *)hash_key, .len = 3 * n});
+
+  // ----------------------------------
+  // Now we start to "really sign"
+  // ----------------------------------
+
+  // Prepare Address
+  setType(ots_addr, 0);
+  setOTSADRS(ots_addr, idx);
+
+  // Compute seed for OTS key pair
+  vec_t ots_seed = get_seed(&wparams.hfunc, sk_seed, n, ots_addr);
+
+  // Compute WOTS signature
+  vec_t *wsig = wots_sign(msg_h, ots_seed, &wparams, pub_seed, ots_addr);
+
+  vec_t *auth = get_auth_from_tree(mtree, ots);
+  vecfree(sk_seed);
+  vecfree(sk_prf);
+  vecfree(pub_seed);
+  vecfree(ots_seed);
+  /*
+   * sig format:
+   *
+   *    size                 |         name           |       description
+   * ------------------------+------------------------+-----------------------------
+   *  4 octets               | ots index (big endian) |  an integer ots
+   *  -----------------------+------------------------+-----------------------------
+   *  32 octets              |          R             |  used in hashed key
+   *  -----------------------+------------------------+-----------------------------
+   *  wparams->len*32 octets |         wsig           |  wots signature
+   *  -----------------------+------------------------+-----------------------------
+   *  h*32 octets            |         auth           |  xmss authentication hashes
+   *  -----------------------'------------------------+-----------------------------
+   *
+   *
+   */
+  vec_t sig = veccat2("vvpp",
+      (vec_t){.data = (void *)&(uint32_t){QINT2BIG_32(idx)}, .len = sizeof(uint32_t)},
+      R,
+      (size_t)wparams.len,
+      wsig,
+      (size_t)height,
+      auth
+  );
+  assert((size_t)(4 + 32 + (wparams.len + height) * wparams.n) == sig.len);
+  vecfree(R);
+  for (uint32_t i = 0; i < wparams.len; i++) vecfree(wsig[i]);
+  free(wsig);
+  for (ssize_t i = 0; i < height; i++) vecfree(auth[i]);
+  free(auth);
+
+  return TOQVEC(sig);
 }

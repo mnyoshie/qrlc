@@ -9,20 +9,26 @@
 #HACK: To link the objects with additional C++ standard libs
 LD = $(CXX)
 
-CFLAGS = -O3
-CFLAGS += -ggdb3
-CFLAGS += -std=c99
+CFLAGS = -std=c99
 CFLAGS += -D_FORTIFY_SOURCE=2
 CFLAGS += -fpie
 CFLAGS += -I.
 CFLAGS += -I..
 CFLAGS += -fstack-protector
-CFLAGS += -fsanitize=address
 CFLAGS += -Wformat
 CFLAGS += -Wformat-security
 CFLAGS += -Wno-implicit-fallthrough
 CFLAGS += -Wall
 CFLAGS += -Wextra
+
+ifeq ($(DEBUG),1)
+  CFLAGS += -O0
+  CFLAGS += -ggdb3
+  CFLAGS += -fsanitize=address
+  CFLAGS += -fsanitize=undefined
+else
+  CFLAGS += -O3
+endif
 
 CFLAGS += $(EXTRACFLAGS)
 CXXFLAGS += $(EXTRACXXFLAGS)
@@ -127,7 +133,7 @@ libqrlc.a : $(objects)
 %.bin : %.o libqrlc.a
 	$(LD) $< -L. -lqrlc $(LDFLAGS) -o $@
 
-test: tests/eget_block_by_number_req.bin tests/dget_block_by_number_resp.bin tests/genkey.bin
+test: tests/eget_block_by_number_req.bin tests/dget_block_by_number_resp.bin tests/gen_key.bin tests/sign_msg.bin
 	@bash -c 'for i in 0 1 2 15 902375 90231 2999079; do \
 		echo "##############################################################################"; \
 		printf "##########################> \e[1;96mBLOCK %016x\e[0m <##########################\n" $$i; \
@@ -137,6 +143,8 @@ test: tests/eget_block_by_number_req.bin tests/dget_block_by_number_resp.bin tes
 		-H "content-type: application/grpc" \
 		--data-binary @- \
 		mainnet-1.automated.theqrl.org:19009/qrl.PublicAPI/GetBlockByNumber | tests/dget_block_by_number_resp.bin	; done'
+	./tests/gen_key.bin
+	./tests/sign_msg.bin
 	@echo libqrlc: OK
 
 
