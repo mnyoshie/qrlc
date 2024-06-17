@@ -53,7 +53,7 @@ void qrl_dump_ex(const int unused, const char *const data, const size_t len) {
 //  assert(len == (size_t)(idata - data));
 }
 
-void qrl_dump(const void *data, const size_t len) {qrl_dump_ex(QRL_LOG_INFO, data, len); }
+void qrl_dump(const void *data, const size_t len) {qrl_dump_ex(QLOG_INFO, data, len); }
 
 void qrl_printx(void *data, size_t len) {
   char *c = data;
@@ -92,14 +92,14 @@ char *qrl_sprintx(void *data, size_t len) {
 //      NULL, getpagesize(), PROT_WRITE,
 //      MAP_PRIVATE | MAP_ANONYMOUS | QRL_MAP_NOCORE | QRL_MAP_CONCEAL, -1, 0);
 //  if (mem == MAP_FAILED) {
-//    QRL_LOG_EX(QRL_LOG_ERROR, "mmap()");
+//    QLOGX(QLOG_ERROR, "mmap()");
 //    perror("");
 //    return NULL;
 //  }
 //
 //  /* lock secure page */
 //  if (mlock(mem, getpagesize())) {
-//    QRL_LOG_EX(QRL_LOG_ERROR, "failed to lock memory %p\n", mem);
+//    QLOGX(QLOG_ERROR, "failed to lock memory %p\n", mem);
 //    munmap(mem, getpagesize());
 //    return NULL;
 //  }
@@ -116,17 +116,17 @@ char *qrl_sprintx(void *data, size_t len) {
 //  memset(mem, 0x00, getpagesize());
 //
 //  if (munlock(mem, getpagesize())) {
-//    QRL_LOG_EX(QRL_LOG_WARNING, "failed to unlock memory %p\n", mem);
+//    QLOGX(QLOG_WARNING, "failed to unlock memory %p\n", mem);
 //  }
 //
 //  munmap(mem, getpagesize());
-//  QRL_LOG_EX(QRL_LOG_TRACE, "freed %d bytes on %p\n", getpagesize(), mem);
+//  QLOGX(QLOG_TRACE, "freed %d bytes on %p\n", getpagesize(), mem);
 //}
 //
 // void *qrl_qalloc(size_t s) {
 //  void *mem = malloc(s);
 //  if (mem == NULL) {
-//    QRL_LOG_EX(QRL_LOG_WARNING, "couldn't allocated %d bytes\n", s);
+//    QLOGX(QLOG_WARNING, "couldn't allocated %d bytes\n", s);
 //    return NULL;
 //  }
 //  return mem;
@@ -135,7 +135,7 @@ char *qrl_sprintx(void *data, size_t len) {
 // void *qrl_calloc(size_t n, size_t s) {
 //  void *mem = calloc(n, s);
 //  if (mem == NULL) {
-//    QRL_LOG_EX(QRL_LOG_WARNING, "couldn't allocated %d bytes\n", n * s);
+//    QLOGX(QLOG_WARNING, "couldn't allocated %d bytes\n", n * s);
 //    return NULL;
 //  }
 //  return mem;

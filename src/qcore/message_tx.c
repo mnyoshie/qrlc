@@ -80,7 +80,7 @@ int qrl_verify_qtx_message(qtx_t *tx) {
 #define EXITIF(x, fmt, ...)                           \
   do {                                                \
     if (x) {                                          \
-      QRL_LOG_EX(QRL_LOG_ERROR, #x ": " __VA_ARGS__); \
+      QLOGX(QLOG_ERROR, #x ": " __VA_ARGS__); \
       goto exit;                                      \
     }                                                 \
   } while (0)
@@ -88,11 +88,11 @@ int qrl_verify_qtx_message(qtx_t *tx) {
   EXITIF(memcmp(tx_hash.data, tx->tx_hash.data, 32), "transaction hash mismatch\n");
   EXITIF(tx->message.message_hash.len > 80, "message transaction exceeds 80 bytes\n");
 //if (memcmp(tx_hash.data, tx->tx_hash.data, 32)) {
-//    QRL_LOG_EX(QRL_LOG_ERROR, "transaction hash mismatch\n");
+//    QLOGX(QLOG_ERROR, "transaction hash mismatch\n");
 //    goto exit;
 //  }
 //  if (tx->message.len > 80) {
-//    QRL_LOG_EX(QRL_LOG_ERROR, "message tran\n");
+//    QLOGX(QLOG_ERROR, "message tran\n");
 //    goto exit;
 //  }
 #undef EXITIF

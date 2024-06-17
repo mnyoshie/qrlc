@@ -38,7 +38,7 @@ qvec_t qrl_decode_base64(const char *b64) {
   base64_decodestate state_in;
   size_t b64len = strlen(b64);
   if (test_b64(b64, b64len)) {
-    QRL_LOG_EX(QRL_LOG_ERROR, "invalid base64\n");
+    QLOGX(QLOG_ERROR, "invalid base64\n");
     return (qvec_t){.data = NULL, .len = 0};
   }
 

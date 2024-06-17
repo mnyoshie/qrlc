@@ -5,6 +5,10 @@
  *
  */
 
+#include <stdlib.h>
+#include <assert.h>
+#include "log.h"
+#include "utils.h"
 #include "pb2types.h"
 
 #define NOOP(x) (x)
@@ -66,14 +70,14 @@ qblock_t *pbblock_to_qblock(Qrl__Block *pbblock) {
     switch (qblock->txs[i].tx_type) {
       case QTX_TRANSFER:
         if (pbblock->transactions[i]->transfer->n_addrs_to != pbblock->transactions[i]->transfer->n_amounts) {
-          QRL_LOG_EX(QRL_LOG_ERROR, "invalid block while unpacking, n_addrs_to != n_amounts\n");
+          QLOGX(QLOG_ERROR, "invalid block while unpacking, n_addrs_to != n_amounts\n");
           qblock->nb_txs = i + 1;
           err = 0xff;
           goto exit;
         }
 
         qblock->txs[i].transfer.nb_transfer_to =            NOOP(
-            pbblock->transactions[i]->transfer->n_addrs_to |
+            pbblock->transactions[i]->transfer->n_addrs_to &
             pbblock->transactions[i]->transfer->n_amounts
         );
         qblock->txs[i].transfer.addrs_to       =       malloc(sizeof(qvec_t)*qblock->txs[i].transfer.nb_transfer_to);
@@ -100,7 +104,7 @@ qblock_t *pbblock_to_qblock(Qrl__Block *pbblock) {
         qblock->txs[i].latticepk.pk3           =   pbvec_to_qvec(pbblock->transactions[i]->latticepk->pk3);
         break;
       default:
-        QRL_LOG_EX(QRL_LOG_ERROR, "unknown transaction type %d\n",qblock->txs[i].tx_type);
+        QLOGX(QLOG_ERROR, "unknown transaction type %d\n",qblock->txs[i].tx_type);
         qblock->txs[i].tx_type = QTX_UNKNOWN;
         err = 0xff;
         break;
@@ -109,11 +113,82 @@ qblock_t *pbblock_to_qblock(Qrl__Block *pbblock) {
 
 exit:
   if (err) {
-    free_qblock(qblock);
+    free_qblock(*qblock);
+    free(qblock);
     qblock = NULL;
   }
 
   return qblock;
+}
+
+Qrl__Transaction *qtx_to_pbtx(const qtx_t *qtx) {
+  Qrl__Transaction *pbtx = malloc(sizeof(*pbtx));
+  assert(pbtx != NULL);
+  qrl__transaction__init(pbtx);
+
+  pbtx->transaction_type_case = (Qrl__Transaction__TransactionTypeCase)qtx->tx_type;
+  pbtx->master_addr           = qvec_to_pbvec(qtx->master_addr);
+  pbtx->fee                   =          NOOP(qtx->fee);
+  pbtx->public_key            = qvec_to_pbvec(qtx->public_key);
+  pbtx->signature             = qvec_to_pbvec(qtx->signature);
+  pbtx->nonce                 =          NOOP(qtx->nonce);
+  pbtx->transaction_hash      = qvec_to_pbvec(qtx->tx_hash);
+  switch (pbtx->transaction_type_case) {
+    case QRL__TRANSACTION__TRANSACTION_TYPE_TRANSFER:
+      pbtx->transfer                 =  malloc(sizeof(*pbtx->transfer));
+      qrl__transaction__transfer__init(pbtx->transfer);
+
+      pbtx->transfer->n_addrs_to     =  qtx->transfer.nb_transfer_to;
+      pbtx->transfer->addrs_to       =  malloc(sizeof(ProtobufCBinaryData)*pbtx->transfer->n_addrs_to);
+      for (size_t t = 0; t < pbtx->transfer->n_addrs_to; t++) {
+        //printf("tx %zu\n", t);
+        //qtx->transfer.addrs_to[t] = pbvec_to_qvec((*(pbtx)).transfer->addrs_to[t]);
+        pbtx->transfer->addrs_to[t]  = qvec_to_pbvec(qtx->transfer.addrs_to[t]);
+      }
+
+      pbtx->transfer->n_amounts      =  qtx->transfer.nb_transfer_to;
+      pbtx->transfer->amounts        =  malloc(sizeof(uint64_t)*pbtx->transfer->n_amounts);
+      for (size_t t = 0; t < pbtx->transfer->n_amounts; t++) {
+        pbtx->transfer->amounts[t]   =  qtx->transfer.amounts[t];
+      }
+
+      pbtx->transfer->message_data   = qvec_to_pbvec(qtx->transfer.message_data);
+      break;
+    case QRL__TRANSACTION__TRANSACTION_TYPE_COINBASE:
+      pbtx->coinbase                 =  malloc(sizeof(*pbtx->coinbase));
+      qrl__transaction__coin_base__init(pbtx->coinbase);
+
+      pbtx->coinbase->amount         =                qtx->coinbase.amount;
+      pbtx->coinbase->addr_to        =  qvec_to_pbvec(qtx->coinbase.addr_to);
+      break;
+    case QRL__TRANSACTION__TRANSACTION_TYPE_MESSAGE:
+      pbtx->message                  =  malloc(sizeof(*pbtx->message));
+      qrl__transaction__message__init(pbtx->message);
+
+      pbtx->message->message_hash    =  qvec_to_pbvec(qtx->message.message_hash);
+      pbtx->message->addr_to         =  qvec_to_pbvec(qtx->message.addr_to);
+    case QRL__TRANSACTION__TRANSACTION_TYPE_LATTICE_PK:
+      pbtx->latticepk->pk1           =  qvec_to_pbvec(qtx->latticepk.pk1);
+      pbtx->latticepk->pk2           =  qvec_to_pbvec(qtx->latticepk.pk2);
+      pbtx->latticepk->pk3           =  qvec_to_pbvec(qtx->latticepk.pk3);
+      break;
+    default: QLOGX(QLOG_ERROR, "unknown transaction type %d\n",pbtx->transaction_type_case);  assert(0);
+  }
+  return pbtx;
+}
+
+qvec_t pack_qtx(const qtx_t *qtx) {
+  void *data;
+  size_t len;
+  Qrl__Transaction *pbtx = qtx_to_pbtx(qtx);
+  len = qrl__transaction__get_packed_size(pbtx);
+  data = malloc(len);
+  assert(data != NULL);
+
+  len = qrl__transaction__pack(pbtx, data);
+  qrl__transaction__free_unpacked(pbtx, NULL);
+
+  return (qvec_t){.data=data, .len=len};
 }
 
 qvec_t pack_qblock(const qblock_t *qblock) {
@@ -146,56 +221,7 @@ qvec_t pack_qblock(const qblock_t *qblock) {
   assert(pbblock->transactions != NULL);
 
   for (qu64 i = 0; i < pbblock->n_transactions; i++) {
-    pbblock->transactions[i] = malloc(sizeof(*pbblock->transactions[i]));
-    qrl__transaction__init(pbblock->transactions[i]);
-    pbblock->transactions[i]->transaction_type_case = (Qrl__Transaction__TransactionTypeCase)qblock->txs[i].tx_type;
-    pbblock->transactions[i]->master_addr           = qvec_to_pbvec(qblock->txs[i].master_addr);
-    pbblock->transactions[i]->fee                   =          NOOP(qblock->txs[i].fee);
-    pbblock->transactions[i]->public_key            = qvec_to_pbvec(qblock->txs[i].public_key);
-    pbblock->transactions[i]->signature             = qvec_to_pbvec(qblock->txs[i].signature);
-    pbblock->transactions[i]->nonce                 =          NOOP(qblock->txs[i].nonce);
-    pbblock->transactions[i]->transaction_hash      = qvec_to_pbvec(qblock->txs[i].tx_hash);
-    switch (pbblock->transactions[i]->transaction_type_case) {
-      case QRL__TRANSACTION__TRANSACTION_TYPE_TRANSFER:
-        pbblock->transactions[i]->transfer                 =  malloc(sizeof(*pbblock->transactions[i]->transfer));
-        qrl__transaction__transfer__init(pbblock->transactions[i]->transfer);
-
-        pbblock->transactions[i]->transfer->n_addrs_to     =  qblock->txs[i].transfer.nb_transfer_to;
-        pbblock->transactions[i]->transfer->addrs_to       =  malloc(sizeof(ProtobufCBinaryData)*pbblock->transactions[i]->transfer->n_addrs_to);
-        for (size_t t = 0; t < pbblock->transactions[i]->transfer->n_addrs_to; t++) {
-          //printf("tx %zu\n", t);
-          //qblock->txs[i].transfer.addrs_to[t] = pbvec_to_qvec((*(pbblock->transactions[i])).transfer->addrs_to[t]);
-          pbblock->transactions[i]->transfer->addrs_to[t]  = qvec_to_pbvec(qblock->txs[i].transfer.addrs_to[t]);
-        }
-
-        pbblock->transactions[i]->transfer->n_amounts      =  qblock->txs[i].transfer.nb_transfer_to;
-        pbblock->transactions[i]->transfer->amounts        =  malloc(sizeof(uint64_t)*pbblock->transactions[i]->transfer->n_amounts);
-        for (size_t t = 0; t < pbblock->transactions[i]->transfer->n_amounts; t++) {
-          pbblock->transactions[i]->transfer->amounts[t]   =  qblock->txs[i].transfer.amounts[t];
-        }
-
-        pbblock->transactions[i]->transfer->message_data   = qvec_to_pbvec(qblock->txs[i].transfer.message_data);
-        break;
-      case QRL__TRANSACTION__TRANSACTION_TYPE_COINBASE:
-        pbblock->transactions[i]->coinbase                 =  malloc(sizeof(*pbblock->transactions[i]->coinbase));
-        qrl__transaction__coin_base__init(pbblock->transactions[i]->coinbase);
-
-        pbblock->transactions[i]->coinbase->amount         =                qblock->txs[i].coinbase.amount;
-        pbblock->transactions[i]->coinbase->addr_to        =  qvec_to_pbvec(qblock->txs[i].coinbase.addr_to);
-        break;
-      case QRL__TRANSACTION__TRANSACTION_TYPE_MESSAGE:
-        pbblock->transactions[i]->message                  =  malloc(sizeof(*pbblock->transactions[i]->message));
-        qrl__transaction__message__init(pbblock->transactions[i]->message);
-
-        pbblock->transactions[i]->message->message_hash    =  qvec_to_pbvec(qblock->txs[i].message.message_hash);
-        pbblock->transactions[i]->message->addr_to         =  qvec_to_pbvec(qblock->txs[i].message.addr_to);
-      case QRL__TRANSACTION__TRANSACTION_TYPE_LATTICE_PK:
-        pbblock->transactions[i]->latticepk->pk1           =  qvec_to_pbvec(qblock->txs[i].latticepk.pk1);
-        pbblock->transactions[i]->latticepk->pk2           =  qvec_to_pbvec(qblock->txs[i].latticepk.pk2);
-        pbblock->transactions[i]->latticepk->pk3           =  qvec_to_pbvec(qblock->txs[i].latticepk.pk3);
-        break;
-      default: QRL_LOG_EX(QRL_LOG_ERROR, "unknown transaction type %d\n",pbblock->transactions[i]->transaction_type_case);  assert(0);
-    }
+    pbblock->transactions[i] = qtx_to_pbtx(&qblock->txs[i]);
   }
   /* clang-format on */
   len = qrl__block__get_packed_size(pbblock);
@@ -217,7 +243,7 @@ qblock_t *unpack_qblock(const qvec_t *block) {
   Qrl__Block *pbblock = qrl__block__unpack(NULL, block->len, block->data);
 //  assert(pbblock != NULL);
   if (pbblock == NULL) {
-    QRL_LOG_EX(QRL_LOG_ERROR, "invalid protobuf data\n");
+    QLOGX(QLOG_ERROR, "invalid protobuf data\n");
     return NULL;
   }
 

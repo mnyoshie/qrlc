@@ -129,7 +129,8 @@ extern qvec_t qrl_qveccpy(const qvec_t a);
 extern qvec_t qrl_qveccat(const qvec_t a, const qvec_t b);
 extern void qrl_qvecdump(const qvec_t v);
 
-extern void free_qblock(qblock_t *qblock);
+extern void free_qblock(qblock_t qblock);
+extern void free_qtx(qtx_t qtx);
 extern void print_qblock(qblock_t *qblock, int v);
 extern const char *qtx_type2str(qtx_type_t tx_type);
 

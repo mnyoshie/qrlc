@@ -68,7 +68,7 @@ qvec_t qrl_compute_qtx_latticepk_hash(const qtx_t *tx) {
   qvec_t tx_hash = qrl_qvecmalloc(32);
 
   qrl_sha256(tx_hash.data, transaction_blob, transaction_blob_len);
-//  QRL_LOG("computed transaction hash\n");
+//  QLOG("computed transaction hash\n");
 //  qrl_dump(tx_hash.data, tx_hash.len);
 
   free(data_hash.data);
@@ -84,7 +84,7 @@ int qrl_verify_qtx_latticepk(qtx_t *tx) {
   assert(tx_hash.len == 32);
   assert(tx->tx_hash.len == 32);
   if (memcmp(tx_hash.data, tx->tx_hash.data, 32)) {
-    QRL_LOG_EX(QRL_LOG_ERROR, "transaction hash mismatch\n");
+    QLOGX(QLOG_ERROR, "transaction hash mismatch\n");
     goto exit;
   }
   ret ^= ret;

@@ -14,7 +14,7 @@
 #include "include/ansicolors.h"
 
 int main() {
-  //qrl_log_level = ~0 & ~QRL_LOG_TRACE;
+  //qrl_log_level = ~0 & ~QLOG_TRACE;
   qrl_log_level = 0;
 
 
@@ -68,6 +68,7 @@ int main() {
   }
 
   qrl__get_block_by_number_resp__free_unpacked(pbblock_resp, NULL);
-  free_qblock(qblock);
+  free_qblock(*qblock);
+  free(qblock);
   return 0;
 }

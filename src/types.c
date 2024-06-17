@@ -120,7 +120,7 @@ void print_qblock(qblock_t *qblock, int verbose) {
         PRINT_FIELD_DATA("    ", txs[i].message.message_hash);
         PRINT_FIELD_DATA("    ", txs[i].message.addr_to);
       break;
-      default: QRL_LOG_EX(QRL_LOG_ERROR, "  transaction type %d\n",qblock->txs[i].tx_type);
+      default: QLOGX(QLOG_ERROR, "  transaction type %d\n",qblock->txs[i].tx_type);
     }
     puts("");
   }
@@ -129,42 +129,44 @@ void print_qblock(qblock_t *qblock, int verbose) {
 #undef PRINT_FIELD_U64
 }
 
-void free_qblock(qblock_t *qblock) {
-  free(qblock->block_hdr.hash_hdr.data);
-  free(qblock->block_hdr.hash_phdr.data);
-  free(qblock->block_hdr.merkle_root.data);
-  /**************TRANSACTIONS***************************/
-  for (size_t i = 0; i < qblock->nb_txs; i++) {
-    qrl_qvecfree(qblock->txs[i].master_addr);
-    qrl_qvecfree(qblock->txs[i].public_key);
-    qrl_qvecfree(qblock->txs[i].signature);
-    qrl_qvecfree(qblock->txs[i].tx_hash);
-    switch (qblock->txs[i].tx_type) {
-      case QTX_TRANSFER:
-        for (size_t t = 0; t < qblock->txs[i].transfer.nb_transfer_to; t++)
-          qrl_qvecfree(qblock->txs[i].transfer.addrs_to[t]);
+void free_qtx(qtx_t qtx) {
+  qrl_qvecfree(qtx.master_addr);
+  qrl_qvecfree(qtx.public_key);
+  qrl_qvecfree(qtx.signature);
+  qrl_qvecfree(qtx.tx_hash);
+  switch (qtx.tx_type) {
+    case QTX_TRANSFER:
+      for (size_t t = 0; t < qtx.transfer.nb_transfer_to; t++)
+        qrl_qvecfree(qtx.transfer.addrs_to[t]);
 
-        qrl_qvecfree(qblock->txs[i].transfer.message_data);
-        break;
-      case QTX_COINBASE:
-        qrl_qvecfree(qblock->txs[i].coinbase.addr_to);
-        break;
-      case QTX_MESSAGE:
-        qrl_qvecfree(qblock->txs[i].message.message_hash);
-        qrl_qvecfree(qblock->txs[i].message.addr_to);
-        break;
-      case QTX_LATTICEPK:
-        qrl_qvecfree(qblock->txs[i].latticepk.pk1);
-        qrl_qvecfree(qblock->txs[i].latticepk.pk2);
-        qrl_qvecfree(qblock->txs[i].latticepk.pk3);
-        break;
-      case QTX_UNKNOWN:
-        QRL_LOG_EX(QRL_LOG_WARNING, "unknown transaction type %d\n",qblock->txs[i].tx_type); 
-        break;
-      default: QRL_LOG_EX(QRL_LOG_ERROR, "unknown transaction type %d\n",qblock->txs[i].tx_type);  assert(0);
-    }
+      qrl_qvecfree(qtx.transfer.message_data);
+      break;
+    case QTX_COINBASE:
+      qrl_qvecfree(qtx.coinbase.addr_to);
+      break;
+    case QTX_MESSAGE:
+      qrl_qvecfree(qtx.message.message_hash);
+      qrl_qvecfree(qtx.message.addr_to);
+      break;
+    case QTX_LATTICEPK:
+      qrl_qvecfree(qtx.latticepk.pk1);
+      qrl_qvecfree(qtx.latticepk.pk2);
+      qrl_qvecfree(qtx.latticepk.pk3);
+      break;
+    case QTX_UNKNOWN:
+      QLOGX(QLOG_WARNING, "unknown transaction type %d\n",qtx.tx_type); 
+      break;
+    default: QLOGX(QLOG_ERROR, "unknown transaction type %d\n",qtx.tx_type);  assert(0);
   }
-  free(qblock->txs);
+}
 
-  free(qblock);
+void free_qblock(qblock_t qblock) {
+  free(qblock.block_hdr.hash_hdr.data);
+  free(qblock.block_hdr.hash_phdr.data);
+  free(qblock.block_hdr.merkle_root.data);
+  /**************TRANSACTIONS***************************/
+  for (size_t i = 0; i < qblock.nb_txs; i++) {
+    free_qtx(qblock.txs[i]);
+  }
+  free(qblock.txs);
 }

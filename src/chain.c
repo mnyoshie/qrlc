@@ -45,7 +45,7 @@ qchain_t *qrl_open_chain(char *dir) {
   state = leveldb_open(options, dir, &err);
 
   if (err != NULL) {
-    QRL_LOG_EX(QRL_LOG_ERROR, "%s: state open fail\n", err);
+    QLOGX(QLOG_ERROR, "%s: state open fail\n", err);
     leveldb_free(err);
     return NULL;
   }
@@ -90,14 +90,14 @@ qvec_t qrl_get_headerhash_by_number(qchain_t *chain, qu64 block_number) {
   value = leveldb_get(chain->state, roptions, key, (size_t)keylen, &valuelen, &err);
 
   if (err != NULL) {
-    QRL_LOG_EX(QRL_LOG_ERROR,
+    QLOGX(QLOG_ERROR,
                "%s: leveldb: %s. failed on block %s (%" PRIx64 ")\n",
                chain->state_dir, err, key, block_number);
     goto exit;
   }
 
   if (value == NULL) {
-    QRL_LOG_EX(QRL_LOG_ERROR, "%s: can't find block %s (%" PRIx64 ")\n",
+    QLOGX(QLOG_ERROR, "%s: can't find block %s (%" PRIx64 ")\n",
                chain->state_dir, key, block_number);
     goto exit;
   }
@@ -134,7 +134,7 @@ qblock_t *qrl_get_block_by_number(qchain_t *chain, qu64 block_number) {
 
   qvec_t headerhash = qrl_get_headerhash_by_number(chain, block_number);
   if (headerhash.data == NULL) {
-    QRL_LOG_EX(QRL_LOG_ERROR,
+    QLOGX(QLOG_ERROR,
                "%s: failed to retrieve headerhash (%" PRIx64 ")\n",
                chain->state_dir, block_number);
     goto exit;
@@ -145,7 +145,7 @@ qblock_t *qrl_get_block_by_number(qchain_t *chain, qu64 block_number) {
                       &valuelen, &err);
 
   if (err != NULL) {
-    QRL_LOG_EX(QRL_LOG_ERROR,
+    QLOGX(QLOG_ERROR,
                "%s: leveldb: %s. failed on block (%" PRIx64 ")\n",
                chain->state_dir, err, block_number);
     goto exit;
@@ -184,7 +184,7 @@ qblock_t *qrl_get_block_by_headerhash(qchain_t *chain, qvec_t headerhash) {
 
   if (err != NULL) {
     char *s = qrl_sprintx(headerhash.data, headerhash.len);
-    QRL_LOG_EX(QRL_LOG_ERROR,
+    QLOGX(QLOG_ERROR,
                "%s: leveldb: %s. failed on block %s\n",
                chain->state_dir, err, s);
     free(s);
@@ -222,7 +222,7 @@ qu64 qrl_get_chain_height(qchain_t *chain) {
                       &valuelen, &err);
 
   if (err != NULL) {
-    QRL_LOG_EX(QRL_LOG_ERROR,
+    QLOGX(QLOG_ERROR,
                "%s: leveldb: %s. failed to get blockheight\n",
                chain->state_dir, err);
     goto exit;
@@ -248,7 +248,7 @@ int qrl_update_chain_height(qchain_t *chain, qu64 height) {
   assert(woptions != NULL);
   leveldb_put(chain->state, woptions, "blockheight", 11, (void*)&(qu64){QINT2BIG_64(height)}, sizeof(height), &err);
   if (err != NULL) {
-    QRL_LOG_EX(QRL_LOG_ERROR,
+    QLOGX(QLOG_ERROR,
                "%s: leveldb: %s. failed to update chain height\n",
                chain->state_dir, err);
     ret = 1;

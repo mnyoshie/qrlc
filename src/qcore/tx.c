@@ -56,7 +56,7 @@ int qrl_verify_qtx(const qtx_t *tx) {
 //  assert(tx_hash.len == 32);
 //  assert(tx->transaction_hash.len == 32);
 //  if (memcmp(tx_hash.data, tx->transaction_hash.data, 32)) {
-//    QRL_LOG_EX(QRL_LOG_ERROR, "transaction hash mismatch\n");
+//    QLOGX(QLOG_ERROR, "transaction hash mismatch\n");
 //    goto exit;
 //  }
 //

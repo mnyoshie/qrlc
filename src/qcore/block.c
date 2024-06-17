@@ -4,7 +4,7 @@
 #include "tx.h"
 #include "dev_config.h"
 
-qvec_t qrl_generate_mining_blob(const qblock_hdr_t *block_hdr) {
+qvec_t qrl_generate_mining_blob(const qblock_hdr_t *const block_hdr) {
   struct inctr_t ctr = {0};
   size_t sincr = 0;
 
@@ -71,7 +71,7 @@ qvec_t qrl_generate_mining_blob(const qblock_hdr_t *block_hdr) {
 
 static inline qvec_t compute_merkle_hash_iterative(qvec_t *vec, size_t nb_vec) {
   if (nb_vec == 0) {
-    QRL_LOG_EX(QRL_LOG_WARNING, "nb_vec == 0\n");
+    QLOGX(QLOG_WARNING, "nb_vec == 0\n");
     return QVEC_NULL;
   }
   if (nb_vec == 1)
@@ -123,7 +123,7 @@ qvec_t qrl_compute_merkle_root(qtx_t *txs, size_t nb_txs) {
   qvec_t merkle_root = QVEC_NULL;
 
   if (nb_txs == 0) {
-    QRL_LOG_EX(QRL_LOG_WARNING, "nb_txs == 0\n");
+    QLOGX(QLOG_WARNING, "nb_txs == 0\n");
     return QVEC_NULL;
   }
 
@@ -186,7 +186,7 @@ int qrl_verify_qblock(const qblock_t *qblock, const hfunc_ctx *hfunc) {
 #define EXITIF(x, ...)                                \
   do {                                                \
     if (x) {                                          \
-      QRL_LOG_EX(QRL_LOG_ERROR, #x ": " __VA_ARGS__); \
+      QLOGX(QLOG_ERROR, #x ": " __VA_ARGS__); \
       goto exit;                                      \
     }                                                 \
   } while (0)

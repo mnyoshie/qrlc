@@ -26,6 +26,7 @@ ifeq ($(DEBUG),1)
   CFLAGS += -ggdb3
   CFLAGS += -fsanitize=address
   CFLAGS += -fsanitize=undefined
+  CFLAGS += -DQDEBUG=1
 else
   CFLAGS += -O3
 endif
