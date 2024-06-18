@@ -53,7 +53,6 @@ LDFLAGS += -ljson-c
 LDFLAGS += -lcrypto
 LDFLAGS += -lpthread
 LDFLAGS += -lleveldb
-#LDFLAGS += -lxmssf_qrl
 LDFLAGS += -lrandomx
 LDFLAGS += -lcryptonight
 LDFLAGS += -fsanitize=address

@@ -23,9 +23,9 @@ int main() {
   assert(len > 5);
   /* uncompressed */
   assert(*buf == 0);
-  /* verify message length. (FIXME may signal unaligned memory access) */
+  /* verify message length. (FIXES unaligned memory access) */
   /* expect to read one grpc message */
-  if ((len - 5) != (size_t)QINT2BIG_32(*(qu32*)(buf + 1))) {
+  if ((len - 5) != (size_t)QINT2BIG_32(QUREAD_32(buf + 1))) {
     fprintf(stderr, "invalid message length\n");
     return 1;
   }

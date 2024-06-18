@@ -25,6 +25,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <openssl/crypto.h>
+
 #include "xmss.h"
 
 #ifdef __unix__
@@ -87,7 +89,9 @@ typedef intmax_t ssize_t; /* last resort, chux suggestion */
     vecdump(x);                                     \
   } while (0)
 
-#ifdef __ORDER_LITTLE_ENDIAN__
+#if defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+static inline uint32_t tobig_32(uint32_t n) {return n;}
+#else
 static inline uint32_t tobig_32(uint32_t n) {
   uint32_t a = (n & (uint32_t)0xff000000) >> (3 * 8);
   uint32_t b = (n & (uint32_t)0x00ff0000) >> (1 * 8);
@@ -95,8 +99,6 @@ static inline uint32_t tobig_32(uint32_t n) {
   uint32_t d = (n & (uint32_t)0x000000ff) << (3 * 8);
   return a | b | c | d;
 }
-#else
-static inline uint32_t tobig_32(uint32_t n) {return n;}
 #endif
 
 
@@ -147,6 +149,7 @@ struct tree_t {
   tree_t *left, *right;
 };
 
+
 typedef struct hfunc_ctx hfunc_ctx;
 struct hfunc_ctx {
   size_t digest_len;
@@ -165,6 +168,19 @@ typedef struct {
   /* misc params */
   hfunc_ctx hfunc;
 } wots_params;
+
+struct xmss_tree_t {
+  tree_t *tree;
+/*
+|  4 bits |  4 bits  | 4 bits |  4 bits  | 8 bits |
+|    SIG  |     HF   |   AF   |    P1    |   P2   |
+`------------------------------------------------*/
+  uint8_t sig, hf, af, p1, p2; 
+  wots_params *wparams;
+  vec_t sk_seed;
+  vec_t sk_prf;
+  vec_t pub_seed;
+};
 
 static wots_params wots_init(hfunc_ctx hfunc, int n, int w) {
   wots_params params;
@@ -218,6 +234,8 @@ static vec_t vecmem(void *data, size_t len);
 /* concatenates a and b */
 static vec_t veccat(vec_t a, vec_t b);
 static vec_t veccat2(char *fmt, ...);
+
+static vec_t vec2nm(vec_t);
 
 /* xor's a and b (a.len must equal b.len) */
 static vec_t vecxor(vec_t a, vec_t b);
@@ -422,9 +440,9 @@ static vec_t gen_chain(const vec_t in, size_t start, size_t steps,
   return out;
 }
 
-static vec_t *expand_seed(hfunc_ctx *hfunc, const vec_t inseed, const size_t n,
+static vec_t *wots_skgen(hfunc_ctx *hfunc, const vec_t inseed, const size_t n,
                           const uint32_t len) {
-  vec_t *outseeds = malloc(sizeof(*outseeds) * len);
+  vec_t *outseeds = OPENSSL_secure_malloc(sizeof(*outseeds) * len);
 
   unsigned char ctr[32];
   for (uint32_t i = 0; i < len; i++) {
@@ -439,9 +457,10 @@ static vec_t *expand_seed(hfunc_ctx *hfunc, const vec_t inseed, const size_t n,
  * pub_seed*/
 static vec_t *wots_pkgen(const vec_t sk, wots_params *wparams,
                          const vec_t pub_seed, uint32_t addr[8]) {
-  vec_t *pk = expand_seed(&wparams->hfunc, sk, wparams->n, wparams->len);
+  vec_t *pk = wots_skgen(&wparams->hfunc, sk, wparams->n, wparams->len);
   for (size_t i = 0; i < wparams->len; i++) {
     setChainADRS(addr, i);
+    /* we generate the pkeys chaining skeys we genwrated from wots_skgen*/
     vec_t v = gen_chain(pk[i], 0, wparams->w - 1, wparams, pub_seed, addr);
     vecfree(pk[i]);
     pk[i] = v;
@@ -492,30 +511,30 @@ static vec_t gen_leaf_wots(const vec_t sk_seed, wots_params *wparams,
   vec_t root = ltree_root(wparams, wots_pkeys, pub_seed, ltree_addr);
 
   for (size_t i = 0; i < wparams->len; i++) vecfree(wots_pkeys[i]);
-  free(wots_pkeys);
+  OPENSSL_secure_free(wots_pkeys);
   vecfree(seed);
 
   return root;
 }
 
 inline vec_t vecmem(void *mem, size_t len) {
-  char *data = malloc(len);
+  char *data = OPENSSL_secure_malloc(len);
   memcpy(data, mem, len);
   return (vec_t){.data = data, .len = len};
 }
 
 inline vec_t veccpy(vec_t v) {
-  char *data = malloc(v.len);
+  char *data = OPENSSL_secure_malloc(v.len);
   memcpy(data, v.data, v.len);
   return (vec_t){.data = data, .len = v.len};
 }
 
-inline void vecfree(vec_t v) { free(v.data); }
+inline void vecfree(vec_t v) { OPENSSL_secure_free(v.data); }
 
 static vec_t vecmalloc(size_t len) {
-  char *data = malloc(len);
-  assert(data != NULL);
-  return (vec_t){.data = data, .len = len};
+  char *data = OPENSSL_secure_malloc(len);
+  if (data == NULL) {LOG("GOT NULL!\n");}
+  return data == NULL ? VEC_NULL : (vec_t){.data = data, .len = len};
 }
 
 static void vecprintx(vec_t v) {
@@ -526,9 +545,18 @@ static void vecprintx(vec_t v) {
 
 inline vec_t veccat(vec_t a, vec_t b) {
   size_t len = a.len + b.len;
-  char *data = malloc(len);
+  char *data = OPENSSL_secure_malloc(len);
   memcpy(data, a.data, a.len);
   memcpy(data + a.len, b.data, b.len);
+  return (vec_t){.data = data, .len = len};
+}
+
+/* vec to native mem and frees v */
+inline vec_t vec2nm(vec_t v) {
+  size_t len = v.len;
+  char *data = malloc(len);
+  memcpy(data, v.data, v.len);
+  vecfree(v);
   return (vec_t){.data = data, .len = len};
 }
 
@@ -566,7 +594,7 @@ inline vec_t veccat2(char *fmt, ...) {
   }
   va_end(ap);
 
-  char *data = malloc(len);
+  char *data = OPENSSL_secure_malloc(len);
   assert(data != NULL);
 
   va_start(ap, fmt);
@@ -731,7 +759,7 @@ static tree_t *tree_alloc(vec_t sk_seed, wots_params *wparams, vec_t pub_seed,
     // printf("alloc height %d\n", height);
     //
 
-    arg_calls[nb_calls].t = malloc(sizeof(tree_t));
+    arg_calls[nb_calls].t = OPENSSL_secure_malloc(sizeof(tree_t));
     arg_calls[nb_calls].t->node_height = arg_calls[nb_calls].height - 1;
     arg_calls[nb_calls].t->node_ndx = treendx[arg_calls[nb_calls].height - 1]++;
     arg_calls[nb_calls].t->hash = (vec_t){.data = NULL, .len = 0};
@@ -807,7 +835,7 @@ static void tree_free(tree_t *t) {
   vecfree(t->hash);
   if (t->left != NULL) tree_free(t->left);
   if (t->right != NULL) tree_free(t->right);
-  free(t);
+  OPENSSL_secure_free(t);
 }
 
 /* recursively performs hash calculation on tree */
@@ -995,7 +1023,7 @@ static vec_t *wots_pk_from_sig(vec_t *sig, vec_t msg, wots_params *wparams,
   unsigned char csum_bytes[((XMSS_WOTS_LEN2 * XMSS_WOTS_LOG_W) + 7) / 8];
   int csum_basew[XMSS_WOTS_LEN2];
   uint32_t i = 0;
-  vec_t *pk = malloc(sizeof(*pk) * XMSS_WOTS_LEN);
+  vec_t *pk = OPENSSL_secure_malloc(sizeof(*pk) * XMSS_WOTS_LEN);
   assert(pk != NULL);
 
   base_w(basew, XMSS_WOTS_LEN1, (void *)msg.data, wparams);
@@ -1023,7 +1051,7 @@ static vec_t *wots_pk_from_sig(vec_t *sig, vec_t msg, wots_params *wparams,
 static vec_t *partition(vec_t in, size_t n) {
   assert(in.len % n == 0);
   size_t nb = in.len / n;
-  vec_t *ret = malloc(sizeof(*ret) * nb);
+  vec_t *ret = OPENSSL_secure_malloc(sizeof(*ret) * nb);
   for (size_t i = 0; i < nb; i++) {
     ret[i] = vecmalloc(n);
     memcpy(ret[i].data, &in.data[i * n], n);
@@ -1084,7 +1112,7 @@ static vec_t *get_auth_from_tree(tree_t *mtree, uint32_t ots) {
   uint32_t h = mtree->node_height + 1 ;
   uint32_t mask = (uint32_t)1 << (h-1);
   uint32_t bits = ots; 
-  vec_t *auth = malloc(sizeof(*auth)*h);
+  vec_t *auth = OPENSSL_secure_malloc(sizeof(*auth)*h);
 
   /* auth traversal by flipping bits */
   for (uint32_t i = 0; i < h; i++) {
@@ -1131,15 +1159,15 @@ static vec_t *wots_sign(vec_t msg, vec_t sk, wots_params *wparams, vec_t pub_see
     basew[wparams->len_1 + i] = csum_basew[i];
   }
 
-  vec_t *sig = expand_seed(&wparams->hfunc, sk, wparams->n, wparams->len);
-  vec_t *pk = malloc(sizeof(*pk) * wparams->len);
+  vec_t *sig = wots_skgen(&wparams->hfunc, sk, wparams->n, wparams->len);
+  vec_t *pk = OPENSSL_secure_malloc(sizeof(*pk) * wparams->len);
 
   for (i = 0; i < wparams->len; i++) {
     setChainADRS(addr, i);
     pk[i] = gen_chain(sig[i], 0, basew[i], wparams, pub_seed, addr);
     vecfree(sig[i]);
   }
-  free(sig);
+  OPENSSL_secure_free(sig);
 
   return pk;
 }
@@ -1162,6 +1190,21 @@ static vec_t *wots_sign(vec_t msg, vec_t sk, wots_params *wparams, vec_t pub_see
 `------------------------------------------------*/
 /* 23 bit <-------------------------------- 0 bit */
 
+int xmss_secure_heap_init() {
+  /* 16 is some magic number we check if secure heap has been init. */
+  /* the usual number returned by CRYPTO_secure_malloc_init() range
+   * from 0 to 2
+   */
+  return CRYPTO_secure_malloc_initialized() ? 16 :
+    CRYPTO_secure_malloc_init(1 << 17, 0);
+}
+
+/* compat */
+int xmss_secure_heap_release() {
+  return CRYPTO_secure_malloc_initialized() ?
+    CRYPTO_secure_malloc_done() : 16;
+}
+
 vec_t xmss_pubkey_to_pubaddr(vec_t pubkey) {
   if (pubkey.len != 67)
     return VEC_NULL;
@@ -1182,7 +1225,7 @@ vec_t xmss_pubkey_to_pubaddr(vec_t pubkey) {
   vecfree(t2);
   vecfree(t3);
   vecfree(t4);
-  return (vec_t){.data = (void *)pubaddr.data, .len = pubaddr.len};
+  return vec2nm(pubaddr);;
 }
 
 vec_t xmss_gen_pubkey(vec_t hexseed) {
@@ -1252,7 +1295,8 @@ vec_t xmss_gen_pubkey(vec_t hexseed) {
   vecfree(randbytes);
   vecfree(sk_seed);
   vecfree(pub_seed);
-  return TOQVEC(pub_key);
+
+  return vec2nm(pub_key);
 }
 
 
@@ -1285,6 +1329,9 @@ vec_t xmss_gen_pubkey(vec_t hexseed) {
  *
  */
 int xmss_verify_sig(vec_t qmsg, vec_t qsig, vec_t qpub_key) {
+  int is_mem_init = xmss_secure_heap_init();
+  assert(is_mem_init != 0);
+
   int ret = 0xff;
   vec_t msg = TOVEC(qmsg);
   vec_t sig = TOVEC(qsig);
@@ -1309,7 +1356,7 @@ int xmss_verify_sig(vec_t qmsg, vec_t qsig, vec_t qpub_key) {
   RETURNIF(
     idx > (uint32_t)pow(2.0,(float)h) - 1,
     ret,
-    "invalid ots, %d\n",
+    "invalid ots, %"PRIu32"\n",
     idx
   );
   vec_t *wsig = get_wsig_from_sig(sig, wparams.len * 32);
@@ -1356,23 +1403,29 @@ int xmss_verify_sig(vec_t qmsg, vec_t qsig, vec_t qpub_key) {
     vecfree(wsig[i]);
     vecfree(wots_pk[i]);
   }
-  free(wots_pk);
-  free(wsig);
+  OPENSSL_secure_free(wots_pk);
+  OPENSSL_secure_free(wsig);
   for (size_t i = 0; i < h; i++) {
     vecfree(auth[i]);
   }
-  free(auth);
+  OPENSSL_secure_free(auth);
   vecfree(pkhash);
   vecfree(pub_seed);
   vecfree(msg_h);
   if (!memcmp(root.data, pub_key.data + 3, n)) ret ^= ret;
 
   vecfree(root);
+
+  if (is_mem_init == 1 || is_mem_init == 2)
+    xmss_secure_heap_release();
+
   return ret;
 }
 
 
 vec_t xmss_sign_msg(vec_t qhexseed, vec_t qmsg, uint32_t ots) {
+  int is_mem_init = xmss_secure_heap_init();
+  assert(is_mem_init != 0);
   assert(qhexseed.len == 51);
   wots_params wparams;
   vec_t hexseed = TOVEC(qhexseed);
@@ -1506,10 +1559,226 @@ vec_t xmss_sign_msg(vec_t qhexseed, vec_t qmsg, uint32_t ots) {
   assert((size_t)(4 + 32 + (wparams.len + height) * wparams.n) == sig.len);
   vecfree(R);
   for (uint32_t i = 0; i < wparams.len; i++) vecfree(wsig[i]);
-  free(wsig);
+  OPENSSL_secure_free(wsig);
   for (ssize_t i = 0; i < height; i++) vecfree(auth[i]);
-  free(auth);
+  OPENSSL_secure_free(auth);
   tree_free(mtree);
 
-  return TOQVEC(sig);
+  if (is_mem_init == 1 || is_mem_init == 2)
+    xmss_secure_heap_release();
+  return vec2nm(sig);
+}
+
+xmss_tree_t *xmss_gen_tree(vec_t qhexseed) {
+  xmss_tree_t *xtree = OPENSSL_secure_malloc(sizeof(*xtree));
+  if (xtree == NULL) {
+    abort();
+  }
+
+  vec_t hexseed = TOVEC(qhexseed);
+  assert(hexseed.len == 51);
+  int n = 32;
+  int w = 16;
+  uint8_t hf = GET_HFB(hexseed.data[0]);
+  uint8_t af = GET_AFB(hexseed.data[1]);
+  uint8_t height = GET_P1B(hexseed.data[1]) * 2;
+
+  xtree->wparams = OPENSSL_secure_malloc(sizeof(*(xtree->wparams)));
+  *(xtree->wparams) = wots_init2(hf, n, w);
+  /* AF: SHA2_256X */
+  if (af != 0) {
+    LOG("invalid af\n");
+    return NULL;
+  }
+
+  vec_t seed = vecmem(hexseed.data + 3, 48);
+
+  /* randbytes format (96 octets):
+   *
+   *    size          |         name            |       description
+   * -----------------+-------------------------+----------------------------
+   *    32 octets     |       sk_seed           |
+   * -----------------+-------------------------+----------------------------
+   *    32 octets     |       sk_prf            |      Maybe unused?
+   * -----------------+-------------------------+----------------------------
+   *    32 octets     |       pub_seed          |
+   */
+  vec_t randbytes = vechash_shake256(seed, 96 /* 3*32 */);
+  // VECDEBUG(randbytes);
+
+  vec_t sk_seed = vecmem(randbytes.data, 32);
+  // VECDEBUG(sk_seed);
+
+  vec_t sk_prf = vecmem(randbytes.data + 32, 32);
+  // VECDEBUG(sk_prf);
+
+  vec_t pub_seed = vecmem(randbytes.data + 64, 32);
+  // VECDEBUG(pub_seed);
+  //
+
+  tree_t *mtree = tree_generate(sk_seed, xtree->wparams, pub_seed, height);
+  xtree->tree = mtree;
+  xtree->sk_seed = sk_seed;
+  xtree->sk_prf = sk_prf;
+  xtree->pub_seed = pub_seed;
+  //xtree->sig = sig;
+  xtree->hf = hf;
+  xtree->p1 = GET_P1B(hexseed.data[1]);
+  vecfree(seed);
+  vecfree(randbytes);
+  return xtree;
+}
+
+void xmss_tree_free(xmss_tree_t *ctx) {
+  tree_free(ctx->tree);
+  OPENSSL_secure_free(ctx->wparams);
+  vecfree(ctx->sk_seed);
+  vecfree(ctx->sk_prf);
+  vecfree(ctx->pub_seed);
+  OPENSSL_secure_free(ctx);
+}
+
+vec_t xmss_tree_pubkey(const xmss_tree_t *ctx) {
+  vec_t pub_seed = ctx->pub_seed;
+  vec_t xpub = ctx->tree->hash;
+/* QRL address descriptor layout DESC (24 bits). */
+/*------------------------------------------------.
+|  4 bits |  4 bits  | 4 bits |  4 bits  | 8 bits |
+|    SIG  |     HF   |   AF   |    P1    |   P2   |
+`------------------------------------------------*/
+/* 23 bit <-------------------------------- 0 bit */
+  uint8_t desc[]  = {(0 << 4) | ctx->hf, 0 | ctx->p1, 0};
+  vec_t pub_key = veccat2("vvv", (vec_t){.data = (void*)desc, .len=3}, xpub, pub_seed);
+  return vec2nm(pub_key);
+}
+
+vec_t xmss_tree_pubaddr(const xmss_tree_t *ctx) {
+  vec_t pub_key = xmss_tree_pubkey(ctx);
+
+  if (pub_key.len != 67)
+    return VEC_NULL;
+
+  vec_t t1 =
+      vechash_sha256((vec_t){.data = (void *)pub_key.data, .len = pub_key.len});
+  vec_t t2 = vecmalloc(3 + 32);
+  /* copy 3 bytes qrl address descriptor */
+  memcpy(t2.data, pub_key.data, 3);
+  /* copy 32 bytes hashed public key */
+  memcpy(t2.data + 3, t1.data, 32);
+  vec_t t3 = vechash_sha256(t2);
+  /* 4 bytes verification hash */
+  vec_t t4 = vecmem(t3.data + t3.len - 4, 4);
+
+  vec_t pub_addr = veccat(t2, t4);
+  vecfree(t1);
+  vecfree(t2);
+  vecfree(t3);
+  vecfree(t4);
+  return (vec_t){.data = (void *)pub_addr.data, .len = pub_addr.len};
+}
+
+vec_t xmss_tree_sign_msg(const xmss_tree_t *mtree, vec_t qmsg, uint32_t ots) {
+  int is_mem_init = xmss_secure_heap_init();
+  assert(is_mem_init != 0);
+
+  wots_params wparams = *(mtree->wparams);
+  vec_t msg = TOVEC(qmsg);
+  size_t n = 32;
+
+  uint8_t height = mtree->p1 * 2;
+  RETURNIF(
+    ots > (uint32_t)pow(2.0,(float)height) - 1,
+    VEC_NULL,
+    "invalid ots, %"PRIu32"\n",
+    ots
+  );
+
+  vec_t sk_seed = mtree->sk_seed;
+  // VECDEBUG(sk_seed);
+
+  vec_t sk_prf = mtree->sk_prf;
+  // VECDEBUG(sk_prf);
+
+  vec_t pub_seed = mtree->pub_seed;
+  // VECDEBUG(pub_seed);
+  //
+
+  uint32_t idx = ots;
+
+  // index as 32 bytes string
+  uint8_t idx_bytes_32[32];
+  to_byte(idx_bytes_32, idx, 32);
+
+  uint8_t hash_key[3 * n];
+
+  // -- Secret key for this non-forward-secure version is now updated.
+  // -- A productive implementation should use a file handle instead and write
+  // the updated secret key at this point!
+  uint32_t ots_addr[8] = {0};
+
+  // ---------------------------------
+  // Message Hashing
+  // ---------------------------------
+
+  // First compute pseudorandom value
+  vec_t R = prf(&wparams.hfunc, (vec_t){.data = (void *)idx_bytes_32, .len = n},
+                sk_prf, n);
+  // Generate hash key (R || root || idx)
+  memcpy(hash_key, R.data, n);
+  memcpy(hash_key + n, mtree->tree->hash.data, n);
+  to_byte(hash_key + 2 * n, idx, n);
+  // Then use it for message digest
+  vec_t msg_h =
+      h_msg(&wparams, msg, (vec_t){.data = (void *)hash_key, .len = 3 * n});
+
+  // ----------------------------------
+  // Now we start to "really sign"
+  // ----------------------------------
+
+  // Prepare Address
+  setType(ots_addr, 0);
+  setOTSADRS(ots_addr, idx);
+
+  // Compute seed for OTS key pair
+  vec_t ots_seed = get_seed(&wparams.hfunc, sk_seed, n, ots_addr);
+
+  // Compute WOTS signature
+  vec_t *wsig = wots_sign(msg_h, ots_seed, &wparams, pub_seed, ots_addr);
+
+  vec_t *auth = get_auth_from_tree(mtree->tree, ots);
+  vecfree(ots_seed);
+  /*
+   * sig format:
+   *
+   *    size                 |         name           |       description
+   * ------------------------+------------------------+-----------------------------
+   *  4 octets               | ots index (big endian) |  an integer ots
+   *  -----------------------+------------------------+-----------------------------
+   *  32 octets              |          R             |  used in hashed key
+   *  -----------------------+------------------------+-----------------------------
+   *  wparams->len*32 octets |         wsig           |  wots signature
+   *  -----------------------+------------------------+-----------------------------
+   *  h*32 octets            |         auth           |  xmss authentication hashes
+   *  -----------------------'------------------------+-----------------------------
+   *
+   *
+   */
+  vec_t sig = veccat2("vvpp",
+      (vec_t){.data = (void *)&(uint32_t){tobig_32(idx)}, .len = sizeof(uint32_t)},
+      R,
+      (size_t)wparams.len,
+      wsig,
+      (size_t)height,
+      auth
+  );
+  assert((size_t)(4 + 32 + (wparams.len + height) * wparams.n) == sig.len);
+  vecfree(R);
+  for (uint32_t i = 0; i < wparams.len; i++) vecfree(wsig[i]);
+  OPENSSL_secure_free(wsig);
+  for (ssize_t i = 0; i < height; i++) vecfree(auth[i]);
+  OPENSSL_secure_free(auth);
+
+  if (is_mem_init == 1 || is_mem_init == 2)
+    xmss_secure_heap_release();
+  return vec2nm(sig);
 }

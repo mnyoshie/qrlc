@@ -51,18 +51,7 @@ static inline uint64_t qbswap_64(uint64_t n) {
 }
 #endif
 
-#if defined(QLITTLE_ENDIAN)
-
-#  define QINT2BIG_64(x) QBSWAP64(x)
-#  define QINT2BIG_32(x) QBSWAP32(x)
-#  define QINT2BIG_16(x) QBSWAP16(x)
-
-#  define QINT2LIT_64(x) x
-#  define QINT2LIT_32(x) x
-#  define QINT2LIT_16(x) x
-
-
-#elif defined(QBIG_ENDIAN)
+#if defined(QBIG_ENDIAN)
 
 #  define QINT2LIT_64(x) QBSWAP64(x)
 #  define QINT2LIT_32(x) QBSWAP32(x)
@@ -72,9 +61,48 @@ static inline uint64_t qbswap_64(uint64_t n) {
 #  define QINT2BIG_32(x) x
 #  define QINT2BIG_16(x) x
 
+
+#elif defined(QLITTLE_ENDIAN)
+
+
+#  define QINT2BIG_64(x) QBSWAP64(x)
+#  define QINT2BIG_32(x) QBSWAP32(x)
+#  define QINT2BIG_16(x) QBSWAP16(x)
+
+#  define QINT2LIT_64(x) x
+#  define QINT2LIT_32(x) x
+#  define QINT2LIT_16(x) x
+#endif /* ENDIAN */
+
+#if 0 /*defined(__arm__) || defined(__aarch64__)*/
+/* Unaligned memory access
+ */
+extern uint32_t __aeabi_uread4(void *address);
+extern uint32_t __aeabi_uwrite4(uint32_t, void *address);
+extern uint64_t __aeabi_uread8(void *address);
+extern uint64_t __aeabi_uwrite8(uint64_t , void *address);
+#define QUREAD_32(p) __aeabi_uread4(p)
+#define QUREAD_64(p)  __aeabi_uread8(p)
+#define QUWRITE_64(n, p) __aeabi_uwrite8(n, p)
+#define QUWRITE_32(n, p) __aeabi_uwrite4(x, p)
+
 #else
-#  error "unknown machine endian"
-#endif /* QRL_MACHINE_*_ENDIAN */
+#define QUREAD_32(p) quread_32(p)
+#define QUREAD_64(p) quread_64(p)
+
+static inline uint32_t quread_32(void *p) {
+  uint32_t ret;
+  memcpy(&ret, p, 4);
+  return ret;
+}
+
+static inline uint64_t quread_64(void *p) {
+  uint64_t ret;
+  memcpy(&ret, p, 8);
+  return ret;
+}
+
+#endif /* defined(__arm__) || defined(__aarch64__) */
 
 #if SIZE_MAX == 0xffffffff /* sizeof(size_t) == 4 */
 #  define QINT2LIT_SIZET(x) QINT2LIT_32(x)

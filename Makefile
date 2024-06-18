@@ -1,7 +1,6 @@
 all: config.mk
 	cd randomx && $(MAKE) && $(MAKE) test
 	cd cryptonight && $(MAKE) && $(MAKE) test
-	cd xmss-alt && $(MAKE)
 	cd src && $(MAKE)
 
 config.mk:
@@ -9,7 +8,6 @@ config.mk:
 
 clean:
 	cd src && $(MAKE) clean
-	cd xmss-alt && $(MAKE) clean
 	cd cryptonight && $(MAKE) clean
 	cd randomx && $(MAKE) clean
 	rm tests/*.bin config.mk
