@@ -5,7 +5,7 @@
 #include "log.h"
 #include "utils.h"
 #include "hash.h"
-#include "xmss.h"
+#include "xmss/xmss.h"
 
 #include "dev_config.h"
 

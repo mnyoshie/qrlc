@@ -1,7 +1,7 @@
 #include "utest.h"
 #include "include/types.h"
+#include "xmss/xmss.h"
 #include "log.h"
-#include "xmss.h"
 
 
 const uint8_t seed_c1[] = {0x00, 0x04, 0x00, 0x91, 0xa2, 0x44, 0x64, 0x5d, 0x1c,
@@ -36,8 +36,8 @@ qvec_t seed2 = {.data = (void *)seed_c2, .len = sizeof(seed_c1)};
 /* pkey : public key
  * skey : secret key
  */
-#define DEFINE_TEST_KEY(n)                                                   \
-  UTEST(pkey, n) {                                                           \
+#define DEFINE_TEST_XMSS_KEY(n)                                              \
+  UTEST(xmss, n) {                                                           \
     qvec_t pub_key = xmss_gen_pubkey(seed##n);                               \
     qvec_t pub_addr = xmss_pubkey_to_pubaddr(pub_key);                       \
     ASSERT_EQ(pub_addr.len, sizeof(pub_caddr##n));                           \
@@ -46,8 +46,21 @@ qvec_t seed2 = {.data = (void *)seed_c2, .len = sizeof(seed_c1)};
     qrl_qvecfree(pub_addr);                                                  \
   }
 
-DEFINE_TEST_KEY(1);
-DEFINE_TEST_KEY(2);
+DEFINE_TEST_XMSS_KEY(1);
+DEFINE_TEST_XMSS_KEY(2);
+
+#define DEFINE_TEST_XMSS_TREE_KEY(n)                                         \
+  UTEST(xmss_tree, n) {                                                      \
+    xmss_tree_t *tree = xmss_gen_tree(seed##n);                              \
+    qvec_t pub_addr = xmss_tree_pubaddr(tree);                               \
+    ASSERT_EQ(pub_addr.len, sizeof(pub_caddr##n));                           \
+    EXPECT_FALSE(memcmp(pub_addr.data, pub_caddr##n, sizeof(pub_caddr##n))); \
+    xmss_tree_free(tree); \
+    qrl_qvecfree(pub_addr);                                                  \
+  }
+
+DEFINE_TEST_XMSS_TREE_KEY(1);
+DEFINE_TEST_XMSS_TREE_KEY(2);
 
 UTEST_STATE();
 

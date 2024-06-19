@@ -57,7 +57,7 @@ int main() {
   int transfer_flipped = 0;
   for (size_t i = 0; i < qblock->nb_txs; i++) {
     if (qblock->txs[i].tx_type == QTX_TRANSFER) {
-      qblock->txs[i].signature.data[0] = ~qblock->txs[i].signature.data[0];
+      qblock->txs[i].signature.data[32] = ~qblock->txs[i].signature.data[32];
       transfer_flipped = 1;
       break;
     }

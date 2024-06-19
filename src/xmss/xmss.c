@@ -61,6 +61,14 @@ typedef intmax_t ssize_t; /* last resort, chux suggestion */
 #include <openssl/evp.h>
 #include <openssl/sha.h>
 
+#define XMSS_ASSERT(x, ...) do {if (!(x)) {LOGF(#x ": " __VA_ARGS__); abort();}} while (0)
+
+/* LOG FORCE */
+#  define LOGF(...)                                                        \
+    do {                                                                  \
+      fprintf(stderr, "%s:%d @ %s(...): ", __FILE__, __LINE__, __func__); \
+      fprintf(stderr, __VA_ARGS__);                                       \
+    } while (0)
 
 #if !defined(QDEBUG)
 #  define LOG(...) \
@@ -68,11 +76,7 @@ typedef intmax_t ssize_t; /* last resort, chux suggestion */
       ;            \
     } while (0)
 #else
-#  define LOG(...)                                                        \
-    do {                                                                  \
-      fprintf(stderr, "%s:%d @ %s(...): ", __FILE__, __LINE__, __func__); \
-      fprintf(stderr, __VA_ARGS__);                                       \
-    } while (0)
+#  define LOG(...) LOGF(...)
 #endif
 
 #define RETURNIF(cond, ret, ...) \
@@ -588,8 +592,8 @@ inline vec_t veccat2(char *fmt, ...) {
         for (size_t i = 0; i < n; i++) len += pv[i].len;
         break;
       default:
-        LOG("illegal character %"PRIx8"\n", (uint8_t)fmt[c]);
-        return VEC_NULL;
+        XMSS_ASSERT(1, "illegal character %"PRIx8"\n", (uint8_t)fmt[c]);
+        break;
     }
   }
   va_end(ap);
@@ -820,8 +824,7 @@ static tree_t *tree_alloc(vec_t sk_seed, wots_params *wparams, vec_t pub_seed,
         case 2:
           goto caller_right;
         default:
-          LOG("must have been the cosmic rays\n");
-          assert(0);
+          XMSS_ASSERT(1, "must have been the cosmic rays\n");
       }
     }
     break;
@@ -832,6 +835,8 @@ static tree_t *tree_alloc(vec_t sk_seed, wots_params *wparams, vec_t pub_seed,
 }
 
 static void tree_free(tree_t *t) {
+  if (t == NULL)
+    return;
   vecfree(t->hash);
   if (t->left != NULL) tree_free(t->left);
   if (t->right != NULL) tree_free(t->right);
@@ -864,11 +869,8 @@ static vec_t tree_hash(tree_t *t, wots_params *wparams, const vec_t pub_seed) {
   arg_calls[0 /* 0 */].caller = -1;
 
   while (1) {
-    /* it's better to crash than silently overflowing */
-    if (nb_calls >= (size_t)t->node_height + 2) {
-      LOG("this must have never happened\n");
-      assert(0);
-    }
+    XMSS_ASSERT(nb_calls < (size_t)t->node_height + 2, "this must have never happened %zu < %zu\n", nb_calls, (size_t)t->node_height + 2);
+
     // printf("height %zu\n", arg_calls[nb_calls].t->height);
     if (arg_calls[nb_calls].t->node_height == -1) {
       arg_calls[nb_calls].ret = arg_calls[nb_calls].t->hash;
@@ -931,8 +933,8 @@ static vec_t tree_hash(tree_t *t, wots_params *wparams, const vec_t pub_seed) {
         case 2:
           goto caller_right_hash;
         default:
-          LOG("must have been the cosmic rays\n");
-          assert(0);
+          XMSS_ASSERT(1, "must have been the cosmic rays\n");
+          break;
       }
     }
     break;
@@ -984,7 +986,8 @@ static wots_params wots_init2(uint8_t hf, int n, int w) {
       return wots_init((hfunc_ctx){.digest_len = n, .hfunc = hfunc_shake256}, n,
                        w);
     default:
-      assert(0);
+      XMSS_ASSERT(1, "invalid hf\n");
+      abort();
   }
 }
 
@@ -1006,105 +1009,6 @@ static void base_w(int *output, const int out_len, const unsigned char *input,
     output[out] = (total >> bits) & (params->w - 1);
     out++;
   }
-}
-
-/* returns array of wparams->len elements of public keys derived from sig and
- * pub_seed*/
-static vec_t *wots_pk_from_sig(vec_t *sig, vec_t msg, wots_params *wparams,
-                               vec_t pub_seed, uint32_t addr[8]) {
-  uint32_t XMSS_WOTS_LEN = wparams->len;
-  uint32_t XMSS_WOTS_LEN1 = wparams->len_1;
-  uint32_t XMSS_WOTS_LEN2 = wparams->len_2;
-  uint32_t XMSS_WOTS_LOG_W = wparams->log_w;
-  uint32_t XMSS_WOTS_W = wparams->w;
-
-  int basew[XMSS_WOTS_LEN];
-  int csum = 0;
-  unsigned char csum_bytes[((XMSS_WOTS_LEN2 * XMSS_WOTS_LOG_W) + 7) / 8];
-  int csum_basew[XMSS_WOTS_LEN2];
-  uint32_t i = 0;
-  vec_t *pk = OPENSSL_secure_malloc(sizeof(*pk) * XMSS_WOTS_LEN);
-  assert(pk != NULL);
-
-  base_w(basew, XMSS_WOTS_LEN1, (void *)msg.data, wparams);
-
-  for (i = 0; i < XMSS_WOTS_LEN1; i++) {
-    csum += XMSS_WOTS_W - 1 - basew[i];
-  }
-
-  csum = csum << (8 - ((XMSS_WOTS_LEN2 * XMSS_WOTS_LOG_W) % 8));
-
-  to_byte(csum_bytes, csum, ((XMSS_WOTS_LEN2 * XMSS_WOTS_LOG_W) + 7) / 8);
-  base_w(csum_basew, XMSS_WOTS_LEN2, csum_bytes, wparams);
-
-  for (i = 0; i < XMSS_WOTS_LEN2; i++) {
-    basew[XMSS_WOTS_LEN1 + i] = csum_basew[i];
-  }
-  for (i = 0; i < XMSS_WOTS_LEN; i++) {
-    setChainADRS(addr, i);
-    pk[i] = gen_chain(sig[i], basew[i], XMSS_WOTS_W - 1 - basew[i], wparams,
-                      pub_seed, addr);
-  }
-  return pk;
-}
-
-static vec_t *partition(vec_t in, size_t n) {
-  assert(in.len % n == 0);
-  size_t nb = in.len / n;
-  vec_t *ret = OPENSSL_secure_malloc(sizeof(*ret) * nb);
-  for (size_t i = 0; i < nb; i++) {
-    ret[i] = vecmalloc(n);
-    memcpy(ret[i].data, &in.data[i * n], n);
-  }
-  return ret;
-}
-
-static vec_t *get_wsig_from_sig(vec_t sig, size_t s) {
-  size_t lbound = 4 + 32;
-  /* .len - lbound == wparams->len*32 */
-  return partition((vec_t){.data = sig.data + lbound, .len = s}, 32);
-}
-
-static vec_t *get_auth_from_sig(vec_t sig, size_t s) {
-  size_t lbound = sig.len - s;
-  /* lbound == 4 + 32 + wparams->len*32 */
-  return partition((vec_t){.data = sig.data + lbound, .len = s}, 32);
-}
-
-static vec_t validate_authpath(wots_params *wparams, vec_t leaf,
-                               uint32_t leafidx, vec_t *auth, const uint32_t h,
-                               vec_t pub_seed, uint32_t addr[8]) {
-  size_t auth_ctr = 0;
-  size_t n = wparams->n;
-  vec_t buf = VEC_NULL;
-  if (leafidx & 1) {
-    buf = veccat(auth[auth_ctr++], leaf);
-  } else
-    buf = veccat(leaf, auth[auth_ctr++]);
-
-  for (uint32_t i = 0; i < h - 1; i++) {
-    setTreeHeight(addr, i);
-    leafidx >>= 1;
-    setTreeIndex(addr, leafidx);
-    vec_t hashed = hash_h(&wparams->hfunc, buf, pub_seed, addr, n);
-    vecfree(buf);
-    if (leafidx & 1) {
-      vec_t catted = veccat(auth[auth_ctr++], hashed);
-      buf = catted;
-    } else {
-      vec_t catted = veccat(hashed, auth[auth_ctr++]);
-      buf = catted;
-    }
-    // VECDEBUG(buf);
-    vecfree(hashed);
-  }
-
-  setTreeHeight(addr, (h - 1));
-  leafidx >>= 1;
-  setTreeIndex(addr, leafidx);
-  vec_t ret = hash_h(&wparams->hfunc, buf, pub_seed, addr, n);
-  vecfree(buf);
-  return ret;
 }
 
 static vec_t *get_auth_from_tree(tree_t *mtree, uint32_t ots) {
@@ -1297,129 +1201,6 @@ vec_t xmss_gen_pubkey(vec_t hexseed) {
   vecfree(pub_seed);
 
   return vec2nm(pub_key);
-}
-
-
-/* pub_key format (67 octets):
- *
- *    size          |         name            |       description
- * -----------------+-------------------------+----------------------------
- *  3 octets        |      qrl addr desc      |  QRL  address descriptor
- *  ----------------+-------------------------+----------------------------
- *  32 octets       |         root            |       XMSS root
- *  ------------------------------------------+----------------------------
- *  32 octets       |       pub seed          |       public seed
- *
- *
- *
- * sig format:
- *
- *    size                 |         name           |       description
- * ------------------------+------------------------+-----------------------------
- *  4 octets               |       ots index        |  an integer index to a ots
- *  -----------------------+------------------------+-----------------------------
- *  32 octets              |          R             |  used in hashed key
- *  -----------------------+------------------------+-----------------------------
- *  wparams->len*32 octets |         wsig           |  wots signature
- *  -----------------------+------------------------+-----------------------------
- *  h*32 octets            |         auth           |  xmss authentication
- * hashes
- *  -----------------------'------------------------+-----------------------------
- *
- *
- */
-int xmss_verify_sig(vec_t qmsg, vec_t qsig, vec_t qpub_key) {
-  int is_mem_init = xmss_secure_heap_init();
-  assert(is_mem_init != 0);
-
-  int ret = 0xff;
-  vec_t msg = TOVEC(qmsg);
-  vec_t sig = TOVEC(qsig);
-  vec_t pub_key = TOVEC(qpub_key);
-
-  if (pub_key.len != 67) 
-    return ret;
-
-  size_t h = GET_P1B(pub_key.data[1]) * 2;
-  uint8_t hf = GET_HFB(pub_key.data[0]);
-  int n = 32;
-  int w = 16;
-
-  wots_params wparams = wots_init2(hf, n, w);
-  // Extract ots index
-  uint32_t idx = ((uint32_t)sig.data[0] << 24) | ((uint32_t)sig.data[1] << 16) |
-                 ((uint32_t)sig.data[2] << 8) | sig.data[3];
-
-  if ((size_t)(4 + 32 + (wparams.len + h) * n) != sig.len)
-    return ret;
-
-  RETURNIF(
-    idx > (uint32_t)pow(2.0,(float)h) - 1,
-    ret,
-    "invalid ots, %"PRIu32"\n",
-    idx
-  );
-  vec_t *wsig = get_wsig_from_sig(sig, wparams.len * 32);
-  vec_t *auth = get_auth_from_sig(sig, h * 32);
-
-  uint8_t hash_key[3 * n];
-
-  vec_t pub_seed = vecmem(pub_key.data + 3 + n, n);
-
-  // Init addresses
-  uint32_t ots_addr[8] = {0};
-  uint32_t ltree_addr[8] = {0};
-  uint32_t node_addr[8] = {0};
-
-  setType(ots_addr, 0);
-  setType(ltree_addr, 1);
-  setType(node_addr, 2);
-
-
-  // Generate hash key (R || root || idx)
-  memcpy(hash_key, sig.data + 4, n);
-  memcpy(hash_key + n, pub_key.data + 3, n);
-  to_byte(hash_key + 2 * n, idx, n);
-
-  vec_t msg_h =
-      h_msg(&wparams, msg, (vec_t){.data = (void *)hash_key, .len = 3 * n});
-  //-----------------------
-  // Verify signature
-  //-----------------------
-
-  // Prepare Address
-  setOTSADRS(ots_addr, idx);
-  // Check WOTS signature
-  vec_t *wots_pk = wots_pk_from_sig(wsig, msg_h, &wparams, pub_seed, ots_addr);
-
-  // Compute Ltree
-  setLtreeADRS(ltree_addr, idx);
-  vec_t pkhash = ltree_root(&wparams, wots_pk, pub_seed, ltree_addr);
-
-  vec_t root =
-      validate_authpath(&wparams, pkhash, idx, auth, h, pub_seed, node_addr);
-
-  for (size_t i = 0; i < wparams.len; i++) {
-    vecfree(wsig[i]);
-    vecfree(wots_pk[i]);
-  }
-  OPENSSL_secure_free(wots_pk);
-  OPENSSL_secure_free(wsig);
-  for (size_t i = 0; i < h; i++) {
-    vecfree(auth[i]);
-  }
-  OPENSSL_secure_free(auth);
-  vecfree(pkhash);
-  vecfree(pub_seed);
-  vecfree(msg_h);
-  if (!memcmp(root.data, pub_key.data + 3, n)) ret ^= ret;
-
-  vecfree(root);
-
-  if (is_mem_init == 1 || is_mem_init == 2)
-    xmss_secure_heap_release();
-
-  return ret;
 }
 
 
@@ -1674,7 +1455,7 @@ vec_t xmss_tree_pubaddr(const xmss_tree_t *ctx) {
   vecfree(t2);
   vecfree(t3);
   vecfree(t4);
-  return (vec_t){.data = (void *)pub_addr.data, .len = pub_addr.len};
+  return vec2nm((vec_t){.data = (void *)pub_addr.data, .len = pub_addr.len});
 }
 
 vec_t xmss_tree_sign_msg(const xmss_tree_t *mtree, vec_t qmsg, uint32_t ots) {

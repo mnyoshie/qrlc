@@ -61,9 +61,7 @@ static inline uint64_t qbswap_64(uint64_t n) {
 #  define QINT2BIG_32(x) x
 #  define QINT2BIG_16(x) x
 
-
 #elif defined(QLITTLE_ENDIAN)
-
 
 #  define QINT2BIG_64(x) QBSWAP64(x)
 #  define QINT2BIG_32(x) QBSWAP32(x)
