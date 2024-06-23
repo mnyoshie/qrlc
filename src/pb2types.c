@@ -14,6 +14,8 @@
 #define NOOP(x) (x)
 
 static qvec_t pbvec_to_qvec(ProtobufCBinaryData pbvec) {
+  if (pbvec.len == 0)
+    return QVEC_NULL;
   void *data = malloc(pbvec.len);
   size_t len = pbvec.len;
   assert(data != NULL);
@@ -23,6 +25,8 @@ static qvec_t pbvec_to_qvec(ProtobufCBinaryData pbvec) {
 }
 
 static ProtobufCBinaryData qvec_to_pbvec(qvec_t qvec) {
+  if (qvec.len == 0)
+    return (ProtobufCBinaryData){.data=NULL, .len=0};
   void *data = malloc(qvec.len);
   size_t len = qvec.len;
   assert(data != NULL);
@@ -139,17 +143,14 @@ Qrl__Transaction *qtx_to_pbtx(const qtx_t *qtx) {
       qrl__transaction__transfer__init(pbtx->transfer);
 
       pbtx->transfer->n_addrs_to     =  qtx->transfer.nb_transfer_to;
+      pbtx->transfer->n_amounts      =  qtx->transfer.nb_transfer_to;
       pbtx->transfer->addrs_to       =  malloc(sizeof(ProtobufCBinaryData)*pbtx->transfer->n_addrs_to);
-      for (size_t t = 0; t < pbtx->transfer->n_addrs_to; t++) {
+      pbtx->transfer->amounts        =  malloc(sizeof(uint64_t)*pbtx->transfer->n_amounts);
+      for (size_t t = 0; t < qtx->transfer.nb_transfer_to; t++) {
         //printf("tx %zu\n", t);
         //qtx->transfer.addrs_to[t] = pbvec_to_qvec((*(pbtx)).transfer->addrs_to[t]);
         pbtx->transfer->addrs_to[t]  = qvec_to_pbvec(qtx->transfer.addrs_to[t]);
-      }
-
-      pbtx->transfer->n_amounts      =  qtx->transfer.nb_transfer_to;
-      pbtx->transfer->amounts        =  malloc(sizeof(uint64_t)*pbtx->transfer->n_amounts);
-      for (size_t t = 0; t < pbtx->transfer->n_amounts; t++) {
-        pbtx->transfer->amounts[t]   =  qtx->transfer.amounts[t];
+        pbtx->transfer->amounts[t]   = qtx->transfer.amounts[t];
       }
 
       pbtx->transfer->message_data   = qvec_to_pbvec(qtx->transfer.message_data);
@@ -167,7 +168,11 @@ Qrl__Transaction *qtx_to_pbtx(const qtx_t *qtx) {
 
       pbtx->message->message_hash    =  qvec_to_pbvec(qtx->message.message_hash);
       pbtx->message->addr_to         =  qvec_to_pbvec(qtx->message.addr_to);
+      break;
     case QRL__TRANSACTION__TRANSACTION_TYPE_LATTICE_PK:
+      pbtx->latticepk                =  malloc(sizeof(*pbtx->latticepk));
+      qrl__transaction__lattice_public_key__init(pbtx->latticepk);
+
       pbtx->latticepk->pk1           =  qvec_to_pbvec(qtx->latticepk.pk1);
       pbtx->latticepk->pk2           =  qvec_to_pbvec(qtx->latticepk.pk2);
       pbtx->latticepk->pk3           =  qvec_to_pbvec(qtx->latticepk.pk3);

@@ -10,6 +10,6 @@
 #include "include/types.h"
 
 extern qvec_t qrl_decode_base64(const char *b64);
-extern char *qrl_encode_base64(const qvec_t *plain);
+extern char *qrl_encode_base64(const qvec_t plain);
 
 #endif

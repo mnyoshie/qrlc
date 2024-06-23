@@ -56,17 +56,17 @@ qvec_t qrl_decode_base64(const char *b64) {
   return (qvec_t){.data = plain, .len = plainlen};
 }
 
-char *qrl_encode_base64(const qvec_t *plain) {
+char *qrl_encode_base64(const qvec_t plain) {
   base64_encodestate state_in;
 
   base64_init_encodestate(&state_in);
-  size_t maxlen = base64_encode_length(plain->len, &state_in) + 1;
+  size_t maxlen = base64_encode_length(plain.len, &state_in) + 1;
   char *b64 = calloc(1, maxlen);
   assert(b64 != NULL);
 
   base64_init_encodestate(&state_in);
   size_t b64len =
-      base64_encode_block((char *)plain->data, plain->len, b64, &state_in);
+      base64_encode_block((char *)plain.data, plain.len, b64, &state_in);
   b64len += base64_encode_blockend((char *)b64 + b64len, &state_in);
   assert(maxlen >= b64len);
   b64[b64len] = 0;

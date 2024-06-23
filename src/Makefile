@@ -9,7 +9,7 @@
 #HACK: To link the objects with additional C++ standard libs
 LD = $(CXX)
 
-CFLAGS = -std=c99
+CFLAGS += -std=c99
 CFLAGS += -D_FORTIFY_SOURCE=2
 CFLAGS += -fpie
 CFLAGS += -I.
@@ -27,6 +27,8 @@ ifeq ($(DEBUG),1)
   CFLAGS += -fsanitize=address
   CFLAGS += -fsanitize=undefined
   CFLAGS += -DQDEBUG=1
+  LDFLAGS += -fsanitize=address
+  LDFLAGS += -fsanitize=undefined
 else
   CFLAGS += -O3
 endif
@@ -34,8 +36,7 @@ endif
 CFLAGS += $(EXTRACFLAGS)
 CXXFLAGS += $(EXTRACXXFLAGS)
 
-LDFLAGS = -L$(PREFIX)/lib
-#LDFLAGS += -L../xmss-alt 
+LDFLAGS += -L$(PREFIX)/lib
 LDFLAGS += -L../randomx
 LDFLAGS += -L../cryptonight
 
@@ -55,7 +56,6 @@ LDFLAGS += -lpthread
 LDFLAGS += -lleveldb
 LDFLAGS += -lrandomx
 LDFLAGS += -lcryptonight
-LDFLAGS += -fsanitize=address
 
 
 csources = log.c

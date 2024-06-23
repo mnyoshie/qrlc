@@ -5,7 +5,7 @@
 #include <qrl.pb-c.h>
 
 #include "utils.h"
-#include "xmss.h"
+#include "xmss/xmss.h"
 #include "pb2types.h"
 #include "include/types.h"
 
@@ -22,8 +22,7 @@ int main(int argc, char *argv[]) {
 
   size_t len;
   void *out;
-  Qrl__PushTransactionReq pb;
-  qrl__push_transaction_req__init(&pb);
+  Qrl__PushTransactionReq *pb;
 
   qvec_t seed1 = {.data = (void*)seed_c1, .len = 51};
 
@@ -41,15 +40,18 @@ int main(int argc, char *argv[]) {
   qtx.nonce = 0;
   qtx.transfer.message_data = QVEC_NULL;
   qtx.transfer.nb_transfer_to = 1;
-  qtx.transfer.amounts = &(qu64){3090001};
+  qtx.transfer.amounts = (qu64[]){3090001};
   qtx.transfer.addrs_to = (qvec_t[]){qrl_qveccpy(pub_addr2)};
   qtx.tx_hash = qrl_compute_qtx_transfer_hash(&qtx);
-  pb.transaction_signed = qtx_to_pbtx(&qtx);
 
+  pb = malloc(sizeof(*pb));
+  qrl__push_transaction_req__init(pb);
+  pb->transaction_signed = qtx_to_pbtx(&qtx);
 
-  len = qrl__push_transaction_req__get_packed_size(&pb);
+  len = qrl__push_transaction_req__get_packed_size(pb);
   out = malloc(len);
-  len = qrl__push_transaction_req__pack(&pb, out);
+  len = qrl__push_transaction_req__pack(pb, out);
+  qrl__push_transaction_req__free_unpacked(pb, NULL);
 
   /* uncompressed */
   write(1, &(char){0}, 1);

@@ -139,6 +139,7 @@ void free_qtx(qtx_t qtx) {
       for (size_t t = 0; t < qtx.transfer.nb_transfer_to; t++)
         qrl_qvecfree(qtx.transfer.addrs_to[t]);
 
+      free(qtx.transfer.addrs_to);
       qrl_qvecfree(qtx.transfer.message_data);
       break;
     case QTX_COINBASE:

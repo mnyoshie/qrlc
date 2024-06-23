@@ -1,5 +1,8 @@
 #ifndef QXMSS_H
 #define QXMSS_H
+
+//#define XMSS_NO_SECURE_HEAP
+
 #include "verify.h"
 
 /* xmss.c and xmss.h works independent of libqrlc */

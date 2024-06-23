@@ -25,9 +25,15 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <openssl/crypto.h>
-
 #include "xmss.h"
+
+#if  defined(XMSS_NO_SECURE_HEAP)
+#  define OPENSSL_secure_malloc(x) malloc(x)
+#  define OPENSSL_secure_free(x) free(x)
+#else
+#  include <openssl/crypto.h>
+#endif
+
 
 #ifdef __unix__
 #  include <sys/types.h>
@@ -76,7 +82,7 @@ typedef intmax_t ssize_t; /* last resort, chux suggestion */
       ;            \
     } while (0)
 #else
-#  define LOG(...) LOGF(...)
+#  define LOG(...) LOGF(__VA_ARGS__)
 #endif
 
 #define RETURNIF(cond, ret, ...) \
@@ -1094,13 +1100,15 @@ static vec_t *wots_sign(vec_t msg, vec_t sk, wots_params *wparams, vec_t pub_see
 `------------------------------------------------*/
 /* 23 bit <-------------------------------- 0 bit */
 
+#if defined(XMSS_NO_SECURE_HEAP)
+#else
 int xmss_secure_heap_init() {
   /* 16 is some magic number we check if secure heap has been init. */
   /* the usual number returned by CRYPTO_secure_malloc_init() range
    * from 0 to 2
    */
   return CRYPTO_secure_malloc_initialized() ? 16 :
-    CRYPTO_secure_malloc_init(1 << 17, 0);
+    CRYPTO_secure_malloc_init(1 << 17, 32);
 }
 
 /* compat */
@@ -1108,6 +1116,8 @@ int xmss_secure_heap_release() {
   return CRYPTO_secure_malloc_initialized() ?
     CRYPTO_secure_malloc_done() : 16;
 }
+#endif
+
 
 vec_t xmss_pubkey_to_pubaddr(vec_t pubkey) {
   if (pubkey.len != 67)

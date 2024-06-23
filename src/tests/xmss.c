@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "include/types.h"
 #include "log.h"
 #include "xmss/xmss.h"
